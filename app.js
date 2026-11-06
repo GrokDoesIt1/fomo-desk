@@ -90,25 +90,31 @@
 
   function statusLine(st) {
     const ui = st.ui || {};
+    const focus = ui.focus;
+    if (focus && focus.active && focus.line) {
+      return `<span class="live"><i class="pulse"></i></span><b>${esc(SHORT[focus.agent] || focus.agent)}</b><span class="t2"> · ${esc(focus.line)}</span>`;
+    }
     if (ui.openPositions > 0) return `<span class="live"><i class="pulse"></i></span><b>${ui.openPositions} open</b>`;
     if (ui.tradesTonight > 0) return `<span class="live"><i class="pulse"></i></span><b>${ui.tradesTonight} tonight</b>`;
-    if (st.running > 0) return `<span class="live"><i class="pulse"></i></span><b>Scanning</b>`;
+    if (st.running > 0) return `<span class="live"><i class="pulse"></i></span><b>Scanning</b><span class="t2"> · watching</span>`;
     return `<b>${esc(ui.headline || 'Waiting')}</b>`;
   }
 
   function pipelineStrip(ui) {
     const steps = ui.pipeline || [];
-    const active = steps.find(p => p.alive && !p.paused) || steps[0];
-    const beam = reduce() || !steps.some(p => p.alive && !p.paused) ? '' : '<i class="beam" aria-hidden="true"></i>';
+    const hot = steps.find(p => p.active) || steps.find(p => p.alive && !p.paused);
+    const beam = reduce() || !steps.some(p => p.active || (p.alive && !p.paused)) ? '' : '<i class="beam" aria-hidden="true"></i>';
     return `<div class="strip">${beam}${steps.map(p => {
       const short = SHORT[p.agent] || p.title;
       const cls = [
         S.openStep === p.step ? 'on' : '',
         p.paused || !p.alive ? 'pause' : '',
-        active && active.step === p.step && p.alive && !p.paused ? 'hot' : ''
+        p.active ? 'hot working' : '',
+        !p.active && hot && hot.step === p.step && p.alive && !p.paused ? 'hot' : ''
       ].filter(Boolean).join(' ');
-      return `<button class="step ${cls}" data-act="togstep" data-step="${p.step}" aria-label="${esc(short)}">
-        <span class="orb" style="${p.alive && !p.paused ? 'color:' + (COLORS[p.agent] || '#fff') : ''}">${p.step}</span>
+      const tip = p.line || p.doing || short;
+      return `<button class="step ${cls}" data-act="togstep" data-step="${p.step}" aria-label="${esc(tip)}">
+        <span class="orb" style="${p.alive && !p.paused ? 'color:' + (COLORS[p.agent] || '#fff') : ''}">${p.step}${p.active && !reduce() ? '<i class="spin"></i>' : ''}</span>
         <span class="lab">${esc(short)}</span></button>`;
     }).join('')}</div>`;
   }
@@ -118,9 +124,10 @@
     if (!p) return '';
     const dec = S.decisions[p.agent];
     const rows = (dec && dec.rows) ? dec.rows.slice(0, 4) : [];
+    const live = p.active ? (p.line || p.doing) : (p.paused ? 'Paused' : 'Watching');
     return `<div class="panel">
-      <div class="ph"><span class="sdot" style="background:${COLORS[p.agent]}"></span>${esc(SHORT[p.agent])} · ${esc(p.agent)}
-        <span class="t2" style="font-weight:400;margin-left:auto">${p.paused ? 'paused' : (p.alive ? 'live' : 'quiet')}</span></div>
+      <div class="ph"><span class="sdot ${p.active ? '' : 'off'}" style="background:${COLORS[p.agent]}"></span>${esc(SHORT[p.agent])} · ${esc(live)}
+        <span class="t2" style="font-weight:400;margin-left:auto">${p.paused ? 'paused' : (p.active ? 'now' : (p.alive ? 'watching' : 'quiet'))}</span></div>
       <div class="pb">${esc(p.blurb || '')}</div>
       <div class="pm">${esc(p.stat || '')}</div>
       ${rows.length ? `<div class="list" style="margin-top:10px">${rows.map(r => `
@@ -158,6 +165,33 @@
     }).join('') + '</div>';
   }
 
+
+  function liveLane(ui) {
+    const steps = ui.pipeline || [];
+    return `<div class="livegrid">${steps.map(p => {
+      const on = p.active;
+      return `<div class="livecell ${on ? 'on' : ''} ${p.paused ? 'pause' : ''}">
+        <span class="sdot ${on ? '' : 'off'}" style="${on ? 'background:' + (COLORS[p.agent] || '#fff') : ''}"></span>
+        <div class="m"><b>${esc(SHORT[p.agent])}</b><span>${esc(on ? (p.line || p.doing) : (p.paused ? 'paused' : 'watching'))}</span></div>
+      </div>`;
+    }).join('')}</div>`;
+  }
+
+  function discoveryRail(ui) {
+    const rows = (ui.discoveries || []).slice(0, 8);
+    if (!rows.length) return '';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;margin:12px 0 6px"><b style="font-size:15px">Found</b>
+      <span class="t2" style="font-size:12px">auto</span></div>
+      <div class="mini find">${rows.map(r => {
+        const badge = r.verdict === 'pass' ? 'up' : (r.verdict === 'kill' || r.verdict === 'reject' ? 'down' : 't2');
+        const stage = SHORT[r.stage] || (r.stage === 'waiting' ? 'Wait' : (r.stage || ''));
+        return `<button class="ticker ${badge}" data-act="togrow" data-id="d-${esc(r.mint)}" data-open="${r.verdict==='reject'&&r.stage==='auditor'?'audit':'coin'}" data-mint="${esc(r.mint)}">
+          <b>${esc(r.label || r.symbol || 'coin')}</b>
+          <span>${esc(stage)} · ${esc(r.plain || r.badge || '—')}</span>
+        </button>`;
+      }).join('')}</div>`;
+  }
+
   function renderHome() {
     const st = S.state;
     if (!st) { $('#view').innerHTML = navbar() + skel(56) + skel(22) + skel(160) + skel(80); return; }
@@ -179,6 +213,8 @@
       <div class="ranges">${['LIVE', '1H', '4H', '1D', '1W', 'ALL'].map(r => `<button data-range="${r}" class="${r === S.range ? 'on' : ''}">${r}</button>`).join('')}</div>
       ${pipelineStrip(ui)}
       ${stepPanel(ui)}
+      ${liveLane(ui)}
+      ${discoveryRail(ui)}
       ${reasonMini(ui.killReasons)}
       <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 6px"><b style="font-size:15px">Activity</b>
         <button class="btn" data-act="moreact" style="min-height:32px;font-size:12px;background:transparent;color:var(--blue)">${S.homeActAll ? 'Less' : 'All'}</button></div>
@@ -218,11 +254,12 @@
         const badge = r.verdict === 'pass' ? 'up' : (r.verdict === 'kill' || r.verdict === 'reject' ? 'down' : 't2');
         const id = r.mint;
         const open = S.openRow === id ? 'open' : '';
+        const stageLab = SHORT[r.stage] || (r.stage === 'waiting' ? 'Wait' : (r.stage || ''));
         return `<button class="row ${open}" style="width:100%;text-align:left" data-act="togrow" data-id="${esc(id)}" data-open="${r.verdict==='reject'&&r.stage==='auditor'?'audit':'coin'}" data-mint="${esc(r.mint)}">
           <div class="m"><b>${esc(r.label || r.symbol || r.name)}</b>
-            <span>${esc(SHORT[r.stage] || r.stage || '')} · ${esc(r.plain || '—')}</span>
+            <span>${esc(stageLab)} · ${esc(r.plain || '—')}</span>
             ${r.tech ? `<div class="detail">${esc(r.tech)}</div>` : ''}</div>
-          <div class="v ${badge}">${esc(r.verdict || '—')}</div></button>`;
+          <div class="v ${badge}">${esc(r.verdict || (r.stage === 'waiting' ? 'wait' : '—'))}</div></button>`;
       }).join('')}</div>` : '<div class="list"><div class="empty-msg">None</div></div>'}`;
     const q = $('#coinq');
     if (q) q.addEventListener('input', () => { S.coinQ = q.value; clearTimeout(renderCoins._t); renderCoins._t = setTimeout(renderCoins, 120); });
@@ -257,8 +294,8 @@
       ${ro ? `<div class="note">Read-only · pause / settings in Telegram</div>` : ''}
       <div class="list" style="margin-top:8px">${(ui.pipeline || []).map(p => `
         <button class="row" style="width:100%;text-align:left" data-act="jumpstep" data-step="${p.step}">
-          <div class="m"><b>${esc(SHORT[p.agent])}</b><span>${p.paused ? 'paused' : (p.alive ? 'live' : 'quiet')} · ${esc(p.stat || '')}</span></div>
-          <div class="v"><span class="sdot ${p.paused || !p.alive ? 'off' : ''}" style="${p.alive && !p.paused ? 'background:'+COLORS[p.agent] : ''}"></span></div>
+          <div class="m"><b>${esc(SHORT[p.agent])}</b><span>${esc(p.active ? (p.line || p.doing) : (p.paused ? 'paused' : 'watching'))} · ${esc(p.stat || '')}</span></div>
+          <div class="v"><span class="sdot ${p.active ? '' : 'off'}" style="${p.active ? 'background:'+COLORS[p.agent] : ''}"></span></div>
         </button>`).join('')}</div>
       ${a ? `<div class="list" style="margin-top:14px">
         <div class="row"><div class="m"><b>Mode</b></div><div class="v"><span class="pill paper">${esc(a.mode)}</span></div></div>

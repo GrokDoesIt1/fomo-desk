@@ -153,3 +153,22 @@ background:var(--green);color:#000;font-weight:700;font-size:17px;display:flex;a
   .beam,.live .pulse,.act .row,.skel{animation:none!important}
   .bal .d>span{transition:none!important}
 }
+
+/* live agent lane + discovery rail */
+.livegrid{display:grid;grid-template-columns:1fr;gap:6px;margin:10px 0 4px}
+.livecell{display:flex;align-items:center;gap:10px;background:var(--c1);border-radius:12px;padding:10px 12px;min-height:44px}
+.livecell .m{flex:1;min-width:0}
+.livecell .m b{display:block;font-size:13px;font-weight:700}
+.livecell .m span{display:block;font-size:12px;color:var(--t2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.livecell.on{box-shadow:inset 0 0 0 1px rgba(100,210,255,.35)}
+.livecell.on .m span{color:var(--t1)}
+.livecell.pause{opacity:.55}
+.find .ticker{min-width:148px;text-align:left}
+.find .ticker.up b{color:var(--green)}
+.find .ticker.down b{color:var(--red)}
+.step.working .orb{position:relative}
+.step .orb .spin{position:absolute;inset:-3px;border-radius:50%;border:1.5px solid transparent;border-top-color:currentColor;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){
+  .step .orb .spin,.live .pulse,.beam{animation:none!important}
+}
