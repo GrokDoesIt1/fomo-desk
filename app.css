@@ -1,7 +1,7 @@
 :root{--bg:#000;--t1:#fff;--t2:rgba(235,235,245,.6);--t3:rgba(235,235,245,.3);--sep:rgba(84,84,88,.55);
-[hidden]{display:none!important}
 --c1:#1c1c1e;--c2:#2c2c2e;--green:#00d35a;--red:#ff453a;--orange:#ff9f0a;--cyan:#64d2ff;--blue:#0a84ff;--yellow:#ffd60a;--pink:#ff6b9a;
 --disp:-apple-system,"SF Pro Display",system-ui,sans-serif;--text:-apple-system,"SF Pro Text",system-ui,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,monospace}
+[hidden]{display:none!important}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--t1);font:15px/1.35 var(--text);-webkit-font-smoothing:antialiased}
 body{padding:env(safe-area-inset-top) 0 calc(84px + env(safe-area-inset-bottom))}
@@ -103,33 +103,53 @@ background:var(--green);color:#000;font-weight:700;font-size:17px;display:flex;a
 .markfade{animation:fade 200ms ease-out}@keyframes fade{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 
-/* ---- friendlier desk UI (additive) ---- */
-.hero{margin:8px 0 4px}
-.hero .label{color:var(--t2);font-size:13px;font-weight:600}
-.hero .wait{margin-top:8px;padding:12px 14px;border-radius:14px;background:var(--c1);color:var(--t2);font-size:14px;line-height:1.4}
-.pipeline{display:flex;flex-direction:column;gap:8px;margin:8px 0 4px}
-.pipe{background:var(--c1);border-radius:14px;padding:12px 14px;text-align:left;width:100%}
-.pipe .n{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:11px;background:var(--c2);font-size:12px;font-weight:700;margin-right:8px}
-.pipe .ttl{font-weight:600;font-size:15px}
-.pipe .blurb{color:var(--t2);font-size:13px;margin-top:4px}
-.pipe .stat{color:var(--t3);font-size:12px;margin-top:6px;font-variant-numeric:tabular-nums}
-.pipe.open{outline:1px solid var(--sep)}
-.pipe .tech{margin-top:8px;padding-top:8px;border-top:.5px solid var(--sep);color:var(--t3);font-size:12px;font-family:var(--mono)}
-.bars{display:flex;flex-direction:column;gap:8px;margin:4px 0 12px}
-.barrow{display:grid;grid-template-columns:1fr 56px;gap:8px;align-items:center}
-.barrow .lab{font-size:13px;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.barrow .track{grid-column:1/-1;height:8px;border-radius:4px;background:var(--c2);overflow:hidden}
-.barrow .track>i{display:block;height:100%;background:var(--cyan)}
-.barrow .cnt{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;font-size:13px;color:var(--t2)}
-.filters{display:flex;gap:8px;overflow-x:auto;margin:8px 0;padding-bottom:2px;scrollbar-width:none}
-.filters::-webkit-scrollbar{display:none}
+/* ---- minimal cool desk UI ---- */
+.hero{margin:4px 0 0;position:relative}
+.hero .topline{display:flex;align-items:center;gap:8px;color:var(--t2);font-size:13px;font-weight:600}
+.live{display:inline-flex;align-items:center;gap:6px}
+.live .pulse{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 1.6s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.status{margin-top:10px;font-size:15px;color:var(--t2);font-weight:500;min-height:22px}
+.status b{color:var(--t1);font-weight:600}
+.strip{display:flex;align-items:stretch;gap:0;margin:18px 0 8px;position:relative}
+.strip::before{content:"";position:absolute;left:10%;right:10%;top:18px;height:2px;background:var(--c2);z-index:0}
+.beam{position:absolute;left:10%;top:17px;height:4px;width:18%;border-radius:2px;background:var(--cyan);z-index:1;animation:beam 2.8s linear infinite;opacity:.9}
+@keyframes beam{0%{transform:translateX(0);opacity:.2}40%{opacity:1}100%{transform:translateX(400%);opacity:.2}}
+.step{flex:1;z-index:2;background:transparent;display:flex;flex-direction:column;align-items:center;gap:6px;min-height:64px;padding:0 2px}
+.step .orb{width:36px;height:36px;border-radius:18px;background:var(--c1);display:grid;place-items:center;font:700 12px var(--disp);color:var(--t2);border:1.5px solid var(--c2);transition:border-color .2s,color .2s,transform .2s}
+.step.on .orb{border-color:var(--cyan);color:#fff;transform:scale(1.06)}
+.step.hot .orb{border-color:var(--green);color:var(--green)}
+.step.pause .orb{border-color:var(--t3);color:var(--t3)}
+.step .lab{font-size:11px;font-weight:600;color:var(--t2);letter-spacing:.02em}
+.step.on .lab,.step.hot .lab{color:var(--t1)}
+.panel{background:var(--c1);border-radius:14px;padding:14px 14px;margin:8px 0 12px}
+.panel .ph{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px}
+.panel .pb{margin-top:8px;color:var(--t2);font-size:13px;line-height:1.35}
+.panel .pm{margin-top:8px;font-size:12px;color:var(--t3);font-variant-numeric:tabular-nums}
+.panel .tech{margin-top:8px;padding-top:8px;border-top:.5px solid var(--sep);font:12px/1.35 var(--mono);color:var(--t3)}
+.act{overflow:hidden}
+.act .row{animation:slidein .35s ease-out}
+@keyframes slidein{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+.mini{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:4px 0 8px}
+.mini::-webkit-scrollbar{display:none}
+.ticker{flex:0 0 auto;background:var(--c1);border-radius:12px;padding:10px 12px;min-width:132px}
+.ticker b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px}
+.ticker span{font-size:12px;color:var(--t2)}
+.filters{display:none;flex-wrap:wrap;gap:8px;margin:8px 0}
+.filters.show{display:flex}
 .chipbtn{flex:0 0 auto;min-height:36px;padding:0 12px;border-radius:18px;background:var(--c1);color:var(--t2);font-size:13px;font-weight:600}
 .chipbtn.on{background:var(--c2);color:var(--t1)}
-.searchbox{width:100%;min-height:44px;border-radius:12px;background:var(--c1);border:0;color:var(--t1);padding:0 14px;font:inherit;margin:8px 0}
-.detail{font-size:12px;color:var(--t3);margin-top:2px;font-family:var(--mono)}
-.stepcard{background:var(--c1);border-radius:14px;padding:14px 16px;margin-bottom:10px}
-.stepcard .hd{display:flex;align-items:center;gap:10px;font-weight:600}
-.stepcard .body{margin-top:8px;color:var(--t2);font-size:14px;line-height:1.4}
-.stepcard .meta{margin-top:8px;font-size:12px;color:var(--t3);font-variant-numeric:tabular-nums}
-.note{background:rgba(255,159,10,.12);color:var(--orange);border-radius:12px;padding:10px 12px;font-size:13px;margin:10px 0;line-height:1.35}
-.tabs button span{font-size:10px}
+.searchbox{width:100%;min-height:44px;border-radius:12px;background:var(--c1);border:0;color:var(--t1);padding:0 14px;font:inherit;margin:8px 0;display:none}
+.searchbox.show{display:block}
+.detail{font-size:12px;color:var(--t3);margin-top:2px;font-family:var(--mono);display:none}
+.row.open .detail{display:block}
+.note{color:var(--orange);font-size:12px;margin:8px 0;line-height:1.35}
+.toolrow{display:flex;gap:8px;align-items:center;margin:4px 0 2px}
+.toolrow .btn{min-height:36px;padding:0 12px;border-radius:18px;background:var(--c1);font-size:13px}
+.chartwrap{height:200px}
+.bal{font-size:56px;letter-spacing:-1.2px}
+@media (max-width:360px){.bal{font-size:48px}.step .lab{font-size:10px}}
+@media (prefers-reduced-motion: reduce){
+  .beam,.live .pulse,.act .row,.skel{animation:none!important}
+  .bal .d>span{transition:none!important}
+}
