@@ -15,15 +15,20 @@
     const pts = (data.points || []).map(p => ({ t: ts(p.t), v: p.v }));
     const draw = (k) => {
       const [x, W, H] = prep(cv);
-      const top = 64, bot = H - 12;
+      const marks = data.marks || [];
+      // Reserve mark rows only when marks exist — avoids ~60px empty gap on flat paper equity.
+      const top = marks.length ? Math.min(64, 16 + marks.length * 22) : 10;
+      const bot = H - 10;
       const start = data.start;
       if (!pts.length) {
         x.setLineDash([4, 5]); x.strokeStyle = C.t3; x.lineWidth = 1;
         x.beginPath(); x.moveTo(0, H / 2); x.lineTo(W, H / 2); x.stroke(); return;
       }
       let vs = pts.map(p => p.v).concat(start != null ? [start] : []);
-      let lo = Math.min(...vs), hi = Math.max(...vs); if (hi - lo < 1e-9) { hi += 1; lo -= 1; }
-      const pad = (hi - lo) * 0.08; lo -= pad; hi += pad;
+      let lo = Math.min(...vs), hi = Math.max(...vs);
+      const flat = (hi - lo < 1e-9);
+      if (flat) { hi += 0.5; lo -= 0.5; } // tight band so a flat line isn't lost in a tall empty chart
+      const pad = (hi - lo) * (flat ? 0.15 : 0.08); lo -= pad; hi += pad;
       const t0 = pts[0].t, t1 = Math.max(pts[pts.length - 1].t, t0 + 1);
       const X = t => (t - t0) / (t1 - t0) * W, Y = v => bot - (v - lo) / (hi - lo) * (bot - top);
       if (start != null) {

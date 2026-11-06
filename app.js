@@ -15,7 +15,10 @@
   const h = new URLSearchParams(location.hash.slice(1));
   if (h.get('t')) { localStorage.setItem('desk_t', h.get('t')); localStorage.removeItem('desk_d'); }
   if (h.get('d')) { localStorage.setItem('desk_d', h.get('d')); localStorage.removeItem('desk_t'); }
-  if (h.get('t') || h.get('d')) history.replaceState(null, '', location.pathname);
+  // Drop private hash and cache-bust query; token stays in localStorage.
+  if (h.get('t') || h.get('d') || /(?:^|[?&])_bv=/.test(location.search)) {
+    history.replaceState(null, '', location.pathname);
+  }
   const TOKEN = localStorage.getItem('desk_t'), DPATH = localStorage.getItem('desk_d');
   const PLAN = TOKEN ? 'A' : (DPATH ? 'B' : null);
 
@@ -23,7 +26,8 @@
     tab: 'home', range: 'LIVE', state: null, chart: null, activity: null, account: null,
     positions: null, coins: null, decisions: {}, lastOk: null, overlay: null, prevPts: 0,
     searchIdx: null, coinQ: '', coinFilter: 'all', coinSort: 'new', openStep: null,
-    openRow: null, showFilt: false, seenAct: new Set(), seenDisc: new Set(), homeActAll: false, homeScope: 'session'
+    openRow: null, showFilt: false, seenAct: new Set(), seenDisc: new Set(), homeActAll: false, homeScope: 'session',
+    prevStats: {}
   };
 
   async function get(path) {
@@ -332,6 +336,14 @@
       const p = ui.pipeline.find(x => x.step === S.openStep);
       if (p && !S.decisions[p.agent]) get('/agents/' + p.agent + '/decisions').then(d => { if (d && d.agent) { S.decisions[d.agent] = d; if (S.tab === 'home') renderHome(); } }).catch(() => {});
     }
+    const pts = (S.chart && S.chart.points) || [];
+    let chartFlat = pts.length < 2;
+    if (pts.length) {
+      let lo = Infinity, hi = -Infinity;
+      for (let i = 0; i < pts.length; i++) { const v = pts[i].v; if (v < lo) lo = v; if (v > hi) hi = v; }
+      chartFlat = !(hi - lo > 1e-9);
+    }
+    const chartEmpty = !S.chart || pts.length < 2;
     $('#view').innerHTML = navbar('Desk') + `
       <div class="hero">
         <div class="topline"><span class="pill paper">PAPER</span><span class="live"><i class="pulse"></i> live</span></div>
@@ -340,8 +352,8 @@
       </div>
       ${homeStats(ui)}
       ${focusCard(st)}
-      <div class="chartwrap"><canvas id="line"></canvas>${!S.chart || !S.chart.points || S.chart.points.length < 2 ? '<div class="empty">—</div>' : ''}</div>
-      <div class="ranges">${['LIVE', '1H', '4H', '1D', '1W', 'ALL'].map(r => `<button data-range="${r}" class="${r === S.range ? 'on' : ''}">${r}</button>`).join('')}</div>
+      <div class="chartwrap${chartFlat ? ' flat' : ''}"><canvas id="line"></canvas>${chartEmpty ? '<div class="empty">—</div>' : ''}</div>
+      <div class="ranges${chartFlat ? ' flat' : ''}">${['LIVE', '1H', '4H', '1D', '1W', 'ALL'].map(r => `<button data-range="${r}" class="${r === S.range ? 'on' : ''}">${r}</button>`).join('')}</div>
       ${pipelineStrip(ui)}
       ${stepPanel(ui)}
       ${agentLane(ui)}
@@ -357,7 +369,16 @@
     const scoped = (stats.byScope && stats.byScope[S.homeScope || stats.scope || 'session']) || stats;
     [['seen', scoped.seen], ['scanning', stats.scanning], ['passed', scoped.passed], ['failed', scoped.failed]].forEach(([k, n]) => {
       const el = document.querySelector('[data-stat="' + k + '"]');
-      if (el) odometer(el, String(n == null ? 0 : n));
+      if (!el) return;
+      const text = String(n == null ? 0 : n);
+      const prev = S.prevStats[k];
+      if (prev != null && String(prev) !== text && String(prev).length === text.length && !reduce()) {
+        odometer(el, String(prev));
+        requestAnimationFrame(() => requestAnimationFrame(() => odometer(el, text)));
+      } else {
+        odometer(el, text);
+      }
+      S.prevStats[k] = text;
     });
     const cv = $('#line'); if (cv && S.chart) { Charts.line(cv, S.chart, S.prevPts); S.prevPts = (S.chart.points || []).length; }
   }

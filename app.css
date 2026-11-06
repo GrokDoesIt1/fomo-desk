@@ -262,23 +262,29 @@ border:1px solid transparent;min-height:92px;display:flex;flex-direction:column;
   .bal{font-size:48px}.step .lab{font-size:10px}.rail-card{flex-basis:136px}.focus .m b{font-size:16px}
 }
 
-/* Home pipeline counters + tiered pass ladder */
-.statbar{margin:12px 0 4px}
+/* Home pipeline counters + tiered pass ladder — big high-contrast numbers */
+.statbar{margin:10px 0 6px}
 .statscopes{display:flex;gap:6px;margin-bottom:8px}
 .scopchip{min-height:28px;padding:0 10px;border-radius:14px;background:var(--c1);color:var(--t3);font-size:11px;font-weight:700;letter-spacing:.02em;text-transform:lowercase}
 .scopchip.on{background:rgba(100,210,255,.16);color:var(--cyan)}
 .statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.stattile{background:linear-gradient(180deg,rgba(44,44,46,.9),var(--c1));border:1px solid rgba(100,210,255,.12);border-radius:14px;padding:10px 8px 8px;text-align:left;min-height:74px;display:flex;flex-direction:column;gap:2px;position:relative;overflow:hidden}
+.stattile{background:linear-gradient(180deg,rgba(58,58,60,.95),var(--c1));border:1px solid rgba(235,235,245,.14);border-radius:16px;padding:12px 8px 10px;text-align:left;min-height:96px;display:flex;flex-direction:column;gap:2px;position:relative;overflow:hidden}
 .stattile::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cyan)}
 .stattile.passed::before{background:var(--green)}
 .stattile.failed::before{background:var(--red)}
 .stattile.scanning::before{background:var(--orange)}
-.stattile .sl{font-size:11px;font-weight:700;color:var(--t2);letter-spacing:.03em;text-transform:uppercase}
-.stattile .sn{font:700 26px/1.05 var(--disp);font-variant-numeric:tabular-nums;letter-spacing:-.5px;display:flex;overflow:hidden;margin-top:4px}
+.stattile .sl{font-size:12px;font-weight:700;color:rgba(235,235,245,.82);letter-spacing:.04em;text-transform:uppercase}
+.stattile .sn{font:800 36px/1 var(--disp);font-variant-numeric:tabular-nums;letter-spacing:-1px;display:flex;overflow:hidden;margin-top:6px;color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.35)}
+.stattile.seen .sn{color:#fff}
+.stattile.scanning .sn{color:var(--orange)}
+.stattile.passed .sn{color:var(--green)}
+.stattile.failed .sn{color:#ff8a80}
 .stattile .sn .d{display:inline-block;height:1em;overflow:hidden;position:relative}
-.stattile .sn .d>span{display:flex;flex-direction:column;transition:transform 500ms cubic-bezier(.2,.8,.2,1)}
+.stattile .sn .d>span{display:flex;flex-direction:column;transition:transform 520ms cubic-bezier(.2,.8,.2,1)}
 .stattile .sn .d>span>i{font-style:normal;height:1em;line-height:1em}
-.stattile .ss{font-size:11px;color:var(--t3);margin-top:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stattile .ss{font-size:11px;font-weight:600;color:rgba(235,235,245,.55);margin-top:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chartwrap.flat{height:72px;margin-top:4px}
+.ranges.flat{margin:2px 0 8px}
 .plist{background:var(--c1);border-radius:14px;overflow:hidden;margin:4px 0 10px}
 .prow{display:flex;align-items:center;gap:12px;min-height:58px;padding:10px 14px;width:100%;text-align:left;position:relative}
 .prow+.prow::before{content:"";position:absolute;top:0;left:14px;right:0;height:.5px;background:var(--sep)}
@@ -298,7 +304,7 @@ border:1px solid transparent;min-height:92px;display:flex;flex-direction:column;
 .tdots.fail i.on{background:var(--red);box-shadow:0 0 6px rgba(255,69,58,.35)}
 .empty-msg.soft{color:var(--t3);padding:16px;font-size:13px}
 @media (max-width:360px){
-  .stattile .sn{font-size:22px}.stattile{padding:8px 6px;min-height:68px}.statgrid{gap:6px}
+  .stattile .sn{font-size:28px}.stattile{padding:10px 6px;min-height:88px}.statgrid{gap:6px}
 }
 @media (prefers-reduced-motion: reduce){
   .beam,.live .pulse,.act .row,.skel,.focus .bar i,.focus .orbmini .ring,.step .orb .spin,
