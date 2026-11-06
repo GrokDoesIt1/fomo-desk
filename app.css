@@ -102,3 +102,34 @@ background:var(--green);color:#000;font-weight:700;font-size:17px;display:flex;a
 .back{min-height:44px;min-width:44px;color:var(--blue);font-size:17px;display:flex;align-items:center}
 .markfade{animation:fade 200ms ease-out}@keyframes fade{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+/* ---- friendlier desk UI (additive) ---- */
+.hero{margin:8px 0 4px}
+.hero .label{color:var(--t2);font-size:13px;font-weight:600}
+.hero .wait{margin-top:8px;padding:12px 14px;border-radius:14px;background:var(--c1);color:var(--t2);font-size:14px;line-height:1.4}
+.pipeline{display:flex;flex-direction:column;gap:8px;margin:8px 0 4px}
+.pipe{background:var(--c1);border-radius:14px;padding:12px 14px;text-align:left;width:100%}
+.pipe .n{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:11px;background:var(--c2);font-size:12px;font-weight:700;margin-right:8px}
+.pipe .ttl{font-weight:600;font-size:15px}
+.pipe .blurb{color:var(--t2);font-size:13px;margin-top:4px}
+.pipe .stat{color:var(--t3);font-size:12px;margin-top:6px;font-variant-numeric:tabular-nums}
+.pipe.open{outline:1px solid var(--sep)}
+.pipe .tech{margin-top:8px;padding-top:8px;border-top:.5px solid var(--sep);color:var(--t3);font-size:12px;font-family:var(--mono)}
+.bars{display:flex;flex-direction:column;gap:8px;margin:4px 0 12px}
+.barrow{display:grid;grid-template-columns:1fr 56px;gap:8px;align-items:center}
+.barrow .lab{font-size:13px;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.barrow .track{grid-column:1/-1;height:8px;border-radius:4px;background:var(--c2);overflow:hidden}
+.barrow .track>i{display:block;height:100%;background:var(--cyan)}
+.barrow .cnt{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;font-size:13px;color:var(--t2)}
+.filters{display:flex;gap:8px;overflow-x:auto;margin:8px 0;padding-bottom:2px;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.chipbtn{flex:0 0 auto;min-height:36px;padding:0 12px;border-radius:18px;background:var(--c1);color:var(--t2);font-size:13px;font-weight:600}
+.chipbtn.on{background:var(--c2);color:var(--t1)}
+.searchbox{width:100%;min-height:44px;border-radius:12px;background:var(--c1);border:0;color:var(--t1);padding:0 14px;font:inherit;margin:8px 0}
+.detail{font-size:12px;color:var(--t3);margin-top:2px;font-family:var(--mono)}
+.stepcard{background:var(--c1);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+.stepcard .hd{display:flex;align-items:center;gap:10px;font-weight:600}
+.stepcard .body{margin-top:8px;color:var(--t2);font-size:14px;line-height:1.4}
+.stepcard .meta{margin-top:8px;font-size:12px;color:var(--t3);font-variant-numeric:tabular-nums}
+.note{background:rgba(255,159,10,.12);color:var(--orange);border-radius:12px;padding:10px 12px;font-size:13px;margin:10px 0;line-height:1.35}
+.tabs button span{font-size:10px}
