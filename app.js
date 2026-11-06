@@ -23,7 +23,7 @@
     tab: 'home', range: 'LIVE', state: null, chart: null, activity: null, account: null,
     positions: null, coins: null, decisions: {}, lastOk: null, overlay: null, prevPts: 0,
     searchIdx: null, coinQ: '', coinFilter: 'all', coinSort: 'new', openStep: null,
-    openRow: null, showFilt: false, seenAct: new Set(), seenDisc: new Set(), homeActAll: false
+    openRow: null, showFilt: false, seenAct: new Set(), seenDisc: new Set(), homeActAll: false, homeScope: 'session'
   };
 
   async function get(path) {
@@ -261,6 +261,66 @@
       }).join('')}</div>`;
   }
 
+
+  function homeStats(ui) {
+    const st = (ui && ui.stats) || {};
+    const scope = S.homeScope || st.scope || 'session';
+    const scoped = (st.byScope && st.byScope[scope]) || st;
+    // scanning/waiting are live desk activity — always from top-level, never invented
+    const tiles = [
+      { key: 'seen', label: 'Seen', n: scoped.seen || 0, filt: 'all', sub: scope === 'session' ? 'night' : scope },
+      { key: 'scanning', label: 'Scanning', n: st.scanning || 0, filt: 'scan',
+        sub: (st.waiting ? (st.waiting + ' wait') : 'live') },
+      { key: 'passed', label: 'Passed', n: scoped.passed || 0, filt: 'full', sub: 'paper' },
+      { key: 'failed', label: "Didn't", n: scoped.failed || 0, filt: 'kill', sub: 'skip' }
+    ];
+    const scopes = (st.scopes || ['session', 'today', 'all']).map(s =>
+      `<button class="scopchip ${s === scope ? 'on' : ''}" data-act="hscope" data-v="${s}">${s === 'session' ? 'night' : s}</button>`
+    ).join('');
+    return `<div class="statbar" id="statbar">
+      <div class="statscopes">${scopes}</div>
+      <div class="statgrid">${tiles.map(t => `
+        <button class="stattile ${t.key}" data-act="statgo" data-filt="${t.filt}" aria-label="${t.label}">
+          <span class="sl">${esc(t.label)}</span>
+          <span class="sn" data-stat="${t.key}">${t.n}</span>
+          <span class="ss">${esc(t.sub || '')}</span>
+        </button>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  function tierDots(n, failed) {
+    const filled = Math.max(0, Math.min(5, n || 0));
+    return `<span class="tdots ${failed ? 'fail' : ''}" aria-hidden="true">${[1,2,3,4,5].map(i =>
+      `<i class="${i <= filled ? 'on' : ''}"></i>`).join('')}</span>`;
+  }
+
+  function passLadder(ui) {
+    const lad = (ui && ui.ladder) || { full: [], progress: [], fullCount: 0 };
+    const full = lad.full || [];
+    const prog = lad.progress || [];
+    const row = (r, kind) => {
+      const failed = !!r.failed;
+      const cls = r.fullPass ? 'pass' : (failed ? 'reject' : 'check');
+      const badge = r.fullPass ? (r.tierLabel || 'Passed') : (failed ? (r.tierLabel || 'Skip') : (r.tierLabel || 'Live'));
+      return `<button class="prow ${cls}" data-act="togrow" data-id="p-${esc(r.mint)}" data-open="${failed && r.tierKey === 'check' ? 'audit' : 'coin'}" data-mint="${esc(r.mint)}">
+        <div class="m"><b>${esc(r.symbol || r.label || 'coin')}</b>
+          <span>${esc(r.plain || r.status || '')}</span></div>
+        <div class="side">${tierDots(r.dots || r.tier, failed)}
+          <span class="pbadge">${esc(badge)}</span></div>
+      </button>`;
+    };
+    const fullBlock = full.length
+      ? `<div class="plist">${full.map(r => row(r, 'full')).join('')}</div>`
+      : `<div class="empty-msg soft">No full passes yet</div>`;
+    const progBlock = prog.length
+      ? `<div class="sec"><b>In progress</b><span class="t2">furthest</span></div>
+         <div class="plist">${prog.map(r => row(r, 'prog')).join('')}</div>`
+      : '';
+    return `<div class="sec"><b>Passed</b><span class="t2">${full.length ? full.length + ' paper' : 'tiered'}</span></div>
+      ${fullBlock}${progBlock}`;
+  }
+
   function renderHome() {
     const st = S.state;
     if (!st) { $('#view').innerHTML = navbar() + skel(56) + skel(22) + skel(160) + skel(80); return; }
@@ -278,12 +338,14 @@
         <div class="balrow"><div class="bal" id="bal"></div></div>
         <div class="today ${up ? 'up' : 'down'}">${pct(st.todayPct)}</div>
       </div>
+      ${homeStats(ui)}
       ${focusCard(st)}
       <div class="chartwrap"><canvas id="line"></canvas>${!S.chart || !S.chart.points || S.chart.points.length < 2 ? '<div class="empty">—</div>' : ''}</div>
       <div class="ranges">${['LIVE', '1H', '4H', '1D', '1W', 'ALL'].map(r => `<button data-range="${r}" class="${r === S.range ? 'on' : ''}">${r}</button>`).join('')}</div>
       ${pipelineStrip(ui)}
       ${stepPanel(ui)}
       ${agentLane(ui)}
+      ${passLadder(ui)}
       ${discoveryRail(ui)}
       ${stageTicker(ui)}
       ${reasonMini(ui.killReasons)}
@@ -291,6 +353,12 @@
         <button class="btn" data-act="moreact" style="min-height:32px;font-size:12px;background:transparent;color:var(--blue)">${S.homeActAll ? 'Less' : 'All'}</button></div>
       <div id="act5">${activityList(S.activity, S.homeActAll ? 40 : 6)}</div>`;
     odometer($('#bal'), usd(st.balance));
+    const stats = ui.stats || {};
+    const scoped = (stats.byScope && stats.byScope[S.homeScope || stats.scope || 'session']) || stats;
+    [['seen', scoped.seen], ['scanning', stats.scanning], ['passed', scoped.passed], ['failed', scoped.failed]].forEach(([k, n]) => {
+      const el = document.querySelector('[data-stat="' + k + '"]');
+      if (el) odometer(el, String(n == null ? 0 : n));
+    });
     const cv = $('#line'); if (cv && S.chart) { Charts.line(cv, S.chart, S.prevPts); S.prevPts = (S.chart.points || []).length; }
   }
 
@@ -298,9 +366,11 @@
     let rows = (S.coins && S.coins.rows) || [];
     const q = (S.coinQ || '').trim().toLowerCase();
     if (q) rows = rows.filter(r => (r.label || '').toLowerCase().includes(q) || (r.name || '').toLowerCase().includes(q) || (r.symbol || '').toLowerCase().includes(q) || (r.mint || '').toLowerCase().includes(q));
-    if (S.coinFilter === 'kill') rows = rows.filter(r => r.verdict === 'kill' || r.verdict === 'reject');
-    if (S.coinFilter === 'pass') rows = rows.filter(r => r.verdict === 'pass');
+    if (S.coinFilter === 'kill') rows = rows.filter(r => r.verdict === 'kill' || r.verdict === 'reject' || r.failed);
+    if (S.coinFilter === 'pass') rows = rows.filter(r => r.verdict === 'pass' || r.fullPass);
+    if (S.coinFilter === 'full') rows = rows.filter(r => r.fullPass);
     if (S.coinFilter === 'wait') rows = rows.filter(r => r.stage === 'waiting');
+    if (S.coinFilter === 'scan') rows = rows.filter(r => r.stage === 'waiting' || (!r.failed && !r.fullPass && (r.stage === 'scanner' || r.stage === 'auditor' || r.stage === 'analyst')));
     if (S.coinFilter === 'auditor') rows = rows.filter(r => r.stage === 'auditor');
     if (S.coinFilter === 'analyst') rows = rows.filter(r => r.stage === 'analyst');
     if (S.coinSort === 'az') rows = rows.slice().sort((a, b) => (a.label || '').localeCompare(b.label || ''));
@@ -317,7 +387,7 @@
       </div>
       <input class="searchbox ${S.showFilt ? 'show' : ''}" id="coinq" placeholder="Search" value="${esc(S.coinQ)}">
       <div class="filters ${S.showFilt ? 'show' : ''}">
-        ${[['all','All'],['wait','Wait'],['kill','Skip'],['pass','Pass'],['auditor','Check'],['analyst','Score']].map(([k,l]) =>
+        ${[['all','All'],['scan','Scan'],['wait','Wait'],['kill','Skip'],['full','Passed'],['pass','Clear'],['auditor','Check'],['analyst','Score']].map(([k,l]) =>
           `<button class="chipbtn ${S.coinFilter===k?'on':''}" data-act="cfilt" data-v="${k}">${l}</button>`).join('')}
         <button class="chipbtn ${S.coinSort==='new'?'on':''}" data-act="csort" data-v="new">New</button>
         <button class="chipbtn ${S.coinSort==='az'?'on':''}" data-act="csort" data-v="az">A–Z</button>
@@ -559,6 +629,16 @@
     else if (act === 'cfilt') { S.coinFilter = t.dataset.v; renderCoins(); }
     else if (act === 'csort') { S.coinSort = t.dataset.v; renderCoins(); }
     else if (act === 'moreact') { S.homeActAll = !S.homeActAll; renderHome(); }
+    else if (act === 'hscope') {
+      S.homeScope = t.dataset.v || 'session';
+      if (S.tab === 'home') renderHome();
+    }
+    else if (act === 'statgo') {
+      S.coinFilter = t.dataset.filt || 'all';
+      S.showFilt = true;
+      S.tab = 'coins';
+      render(); refresh(); window.scrollTo(0, 0);
+    }
     else if (act === 'reason') {
       const sheet = $('#sheet');
       sheet.hidden = false;
