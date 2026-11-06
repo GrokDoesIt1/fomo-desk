@@ -23,7 +23,7 @@
     tab: 'home', range: 'LIVE', state: null, chart: null, activity: null, account: null,
     positions: null, coins: null, decisions: {}, lastOk: null, overlay: null, prevPts: 0,
     searchIdx: null, coinQ: '', coinFilter: 'all', coinSort: 'new', openStep: null,
-    openRow: null, showFilt: false, seenAct: new Set()
+    openRow: null, showFilt: false, seenAct: new Set(), seenDisc: new Set(), homeActAll: false
   };
 
   async function get(path) {
@@ -103,8 +103,9 @@
   function pipelineStrip(ui) {
     const steps = ui.pipeline || [];
     const hot = steps.find(p => p.active) || steps.find(p => p.alive && !p.paused);
-    const beam = reduce() || !steps.some(p => p.active || (p.alive && !p.paused)) ? '' : '<i class="beam" aria-hidden="true"></i>';
-    return `<div class="strip">${beam}${steps.map(p => {
+    const anyActive = steps.some(p => p.active);
+    const beam = reduce() || !anyActive ? '' : '<i class="beam" aria-hidden="true"></i>';
+    const strip = `<div class="strip">${beam}${steps.map(p => {
       const short = SHORT[p.agent] || p.title;
       const cls = [
         S.openStep === p.step ? 'on' : '',
@@ -113,23 +114,30 @@
         !p.active && hot && hot.step === p.step && p.alive && !p.paused ? 'hot' : ''
       ].filter(Boolean).join(' ');
       const tip = p.line || p.doing || short;
-      return `<button class="step ${cls}" data-act="togstep" data-step="${p.step}" aria-label="${esc(tip)}">
-        <span class="orb" style="${p.alive && !p.paused ? 'color:' + (COLORS[p.agent] || '#fff') : ''}">${p.step}${p.active && !reduce() ? '<i class="spin"></i>' : ''}</span>
+      const col = (p.alive && !p.paused) ? (COLORS[p.agent] || '#fff') : '';
+      return `<button class="step ${cls}" data-act="togstep" data-step="${p.step}" aria-label="${esc(tip)}" style="${col ? 'color:' + col : ''}">
+        <span class="orb">${p.step}${p.active && !reduce() ? '<i class="spin"></i>' : ''}</span>
         <span class="lab">${esc(short)}</span></button>`;
     }).join('')}</div>`;
+    // progress between agents: filled up to active step
+    const activeIdx = Math.max(0, steps.findIndex(p => p.active));
+    const dots = steps.length > 1 ? `<div class="flowdots" aria-hidden="true">${steps.slice(0, -1).map((_, i) => {
+      const cls = anyActive ? (i < activeIdx ? 'done' : (i === activeIdx ? 'on' : '')) : '';
+      return `<i class="${cls}"></i>`;
+    }).join('')}</div>` : '';
+    return strip + dots;
   }
 
   function stepPanel(ui) {
     const p = (ui.pipeline || []).find(x => x.step === S.openStep);
     if (!p) return '';
     const dec = S.decisions[p.agent];
-    const rows = (dec && dec.rows) ? dec.rows.slice(0, 4) : [];
+    const rows = (dec && dec.rows) ? dec.rows.slice(0, 3) : [];
     const live = p.active ? (p.line || p.doing) : (p.paused ? 'Paused' : 'Watching');
     return `<div class="panel">
       <div class="ph"><span class="sdot ${p.active ? '' : 'off'}" style="background:${COLORS[p.agent]}"></span>${esc(SHORT[p.agent])} · ${esc(live)}
         <span class="t2" style="font-weight:400;margin-left:auto">${p.paused ? 'paused' : (p.active ? 'now' : (p.alive ? 'watching' : 'quiet'))}</span></div>
-      <div class="pb">${esc(p.blurb || '')}</div>
-      <div class="pm">${esc(p.stat || '')}</div>
+      <div class="pm">${esc(p.stat || '')}${p.coin ? ' · ' + esc(p.coin) : ''}</div>
       ${rows.length ? `<div class="list" style="margin-top:10px">${rows.map(r => `
         <a class="row" href="${esc(r.coin_url || '#')}" target="_blank" rel="noopener"><div class="m"><b>${esc(r.label)}</b>
           <span>${esc(r.plain || r.reason || r.verdict || '')}</span></div>
@@ -165,30 +173,91 @@
     }).join('') + '</div>';
   }
 
+  function stateClass(stage, verdict) {
+    if (verdict === 'pass') return 'pass';
+    if (verdict === 'kill') return 'kill';
+    if (verdict === 'reject') return 'reject';
+    if (stage === 'waiting') return 'wait';
+    if (stage === 'auditor' || stage === 'analyst' || stage === 'scanner') return 'check';
+    return '';
+  }
 
-  function liveLane(ui) {
+  function focusCard(st) {
+    const ui = st.ui || {};
+    const focus = ui.focus;
+    const waiting = (ui.pipeline && ui.pipeline[0] && String(ui.pipeline[0].stat || '').match(/(\d+)\s+waiting/)) || null;
+    const waitN = waiting ? waiting[1] : null;
+    if (focus && focus.active) {
+      const disc = (ui.discoveries || []).find(d => d.mint && focus.mint && d.mint === focus.mint);
+      const stc = stateClass(disc && disc.stage, disc && disc.verdict) || (focus.outcome === 'kill' ? 'kill' : 'check');
+      const why = (disc && disc.plain) || focus.detail || focus.doing || 'Checking';
+      const tag = SHORT[focus.agent] || focus.agent;
+      const ago = focus.stageTs ? hm(focus.stageTs) : '';
+      return `<button class="focus active ${stc}" data-act="togrow" data-id="focus-${esc(focus.mint || 'x')}" data-open="${(disc && disc.verdict === 'reject' && disc.stage === 'auditor') ? 'audit' : 'coin'}" data-mint="${esc(focus.mint || '')}">
+        <span class="orbmini">${focus.step || '·'}${!reduce() ? '<i class="ring"></i>' : ''}</span>
+        <div class="m"><div class="who">${esc(tag)} · ${esc(focus.doing || 'Working')}</div>
+          <b>${esc(focus.coin || focus.label || 'token')}</b>
+          <span>${esc(why)}</span></div>
+        <div class="side"><span class="tag">${esc((disc && disc.badge) || focus.status || 'live')}</span>
+          ${ago ? `<span class="ago">${esc(ago)}</span>` : ''}</div>
+        ${!reduce() ? '<div class="bar"><i></i></div>' : ''}</button>`;
+    }
+    return `<div class="focus idle">
+      <span class="orbmini">·</span>
+      <div class="m"><div class="who">Desk</div>
+        <b>${esc(ui.headline || 'Watching')}</b>
+        <span>${waitN ? (waitN + ' waiting on liquidity') : (st.running > 0 ? 'Bots idle · no fake work' : 'Paused')}</span></div>
+      <div class="side"><span class="tag">watch</span></div></div>`;
+  }
+
+  function agentLane(ui) {
     const steps = ui.pipeline || [];
-    return `<div class="livegrid">${steps.map(p => {
+    return `<div class="lane">${steps.map(p => {
       const on = p.active;
-      return `<div class="livecell ${on ? 'on' : ''} ${p.paused ? 'pause' : ''}">
+      return `<div class="chipbot ${on ? 'on' : ''} ${p.paused ? 'pause' : ''}">
         <span class="sdot ${on ? '' : 'off'}" style="${on ? 'background:' + (COLORS[p.agent] || '#fff') : ''}"></span>
-        <div class="m"><b>${esc(SHORT[p.agent])}</b><span>${esc(on ? (p.line || p.doing) : (p.paused ? 'paused' : 'watching'))}</span></div>
+        <b>${esc(SHORT[p.agent])}</b>
+        <span>${esc(on ? (p.line || p.doing) : (p.paused ? 'paused' : 'watching'))}</span>
       </div>`;
     }).join('')}</div>`;
   }
 
   function discoveryRail(ui) {
-    const rows = (ui.discoveries || []).slice(0, 8);
+    const rows = (ui.discoveries || []).slice(0, 10);
     if (!rows.length) return '';
-    return `<div style="display:flex;align-items:center;justify-content:space-between;margin:12px 0 6px"><b style="font-size:15px">Found</b>
-      <span class="t2" style="font-size:12px">auto</span></div>
-      <div class="mini find">${rows.map(r => {
-        const badge = r.verdict === 'pass' ? 'up' : (r.verdict === 'kill' || r.verdict === 'reject' ? 'down' : 't2');
+    const first = !S.seenDisc.size;
+    return `<div class="sec"><b>Found</b><span class="t2">live</span></div>
+      <div class="rail">${rows.map(r => {
+        const stc = stateClass(r.stage, r.verdict);
+        const id = r.mint || r.label;
+        const fresh = !first && id && !S.seenDisc.has(id);
+        if (id) S.seenDisc.add(id);
         const stage = SHORT[r.stage] || (r.stage === 'waiting' ? 'Wait' : (r.stage || ''));
-        return `<button class="ticker ${badge}" data-act="togrow" data-id="d-${esc(r.mint)}" data-open="${r.verdict==='reject'&&r.stage==='auditor'?'audit':'coin'}" data-mint="${esc(r.mint)}">
-          <b>${esc(r.label || r.symbol || 'coin')}</b>
-          <span>${esc(stage)} · ${esc(r.plain || r.badge || '—')}</span>
+        const badge = r.badge || r.verdict || (r.stage === 'waiting' ? 'wait' : 'seen');
+        return `<button class="rail-card ${stc} ${fresh && !reduce() ? 'fresh' : ''}" data-act="togrow" data-id="d-${esc(r.mint)}" data-open="${r.verdict === 'reject' && r.stage === 'auditor' ? 'audit' : 'coin'}" data-mint="${esc(r.mint)}">
+          <span class="badge">${esc(badge)}</span>
+          <div class="sym">${esc(r.label || r.symbol || 'coin')}</div>
+          <div class="meta">${esc(stage)}</div>
+          <div class="why">${esc(r.plain || '—')}</div>
         </button>`;
+      }).join('')}</div>`;
+  }
+
+  function stageTicker(ui) {
+    const rows = (ui.stages || []).slice(0, 8);
+    if (!rows.length) return '';
+    return `<div class="sec"><b>Pipeline</b><span class="t2">events</span></div>
+      <div class="tickerlist">${rows.map((r, i) => {
+        const id = (r.ts || '') + (r.agent || '') + (r.mint || '') + (r.detail || '');
+        const fresh = i === 0 && id && !S.seenAct.has('st:' + id);
+        if (id) S.seenAct.add('st:' + id);
+        const out = r.outcome === 'kill' || r.outcome === 'reject' ? 'out' : (r.outcome === 'pass' ? 'ok' : '');
+        const who = SHORT[r.agent] || r.agent || '';
+        const title = r.label ? `${r.doing || r.status} · ${r.label}` : (r.doing || r.status || '—');
+        return `<button class="tick ${out} ${fresh && !reduce() ? 'fresh' : ''}" data-act="togrow" data-id="st-${esc(id)}" data-open="coin" data-mint="${esc(r.mint || '')}">
+          <span class="who">${esc(who)}</span>
+          <div class="m"><b>${esc(title)}</b><span>${esc(r.detail || '')}</span></div>
+          <span class="tm">${esc(hm(r.ts))}</span></button>`;
       }).join('')}</div>`;
   }
 
@@ -197,7 +266,8 @@
     if (!st) { $('#view').innerHTML = navbar() + skel(56) + skel(22) + skel(160) + skel(80); return; }
     const ui = st.ui || {};
     const up = st.todayPct >= 0;
-    // prefetch decisions when a step is open
+    const scanning = !!(ui.focus && ui.focus.active) || (st.running > 0 && (ui.discoveries || []).some(d => d.stage === 'waiting' || d.verdict === 'kill'));
+    document.body.classList.toggle('scanning', !!scanning && !reduce());
     if (S.openStep && ui.pipeline) {
       const p = ui.pipeline.find(x => x.step === S.openStep);
       if (p && !S.decisions[p.agent]) get('/agents/' + p.agent + '/decisions').then(d => { if (d && d.agent) { S.decisions[d.agent] = d; if (S.tab === 'home') renderHome(); } }).catch(() => {});
@@ -207,16 +277,17 @@
         <div class="topline"><span class="pill paper">PAPER</span><span class="live"><i class="pulse"></i> live</span></div>
         <div class="balrow"><div class="bal" id="bal"></div></div>
         <div class="today ${up ? 'up' : 'down'}">${pct(st.todayPct)}</div>
-        <div class="status">${statusLine(st)}</div>
       </div>
+      ${focusCard(st)}
       <div class="chartwrap"><canvas id="line"></canvas>${!S.chart || !S.chart.points || S.chart.points.length < 2 ? '<div class="empty">—</div>' : ''}</div>
       <div class="ranges">${['LIVE', '1H', '4H', '1D', '1W', 'ALL'].map(r => `<button data-range="${r}" class="${r === S.range ? 'on' : ''}">${r}</button>`).join('')}</div>
       ${pipelineStrip(ui)}
       ${stepPanel(ui)}
-      ${liveLane(ui)}
+      ${agentLane(ui)}
       ${discoveryRail(ui)}
+      ${stageTicker(ui)}
       ${reasonMini(ui.killReasons)}
-      <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 6px"><b style="font-size:15px">Activity</b>
+      <div class="sec"><b>Activity</b>
         <button class="btn" data-act="moreact" style="min-height:32px;font-size:12px;background:transparent;color:var(--blue)">${S.homeActAll ? 'Less' : 'All'}</button></div>
       <div id="act5">${activityList(S.activity, S.homeActAll ? 40 : 6)}</div>`;
     odometer($('#bal'), usd(st.balance));
@@ -229,6 +300,7 @@
     if (q) rows = rows.filter(r => (r.label || '').toLowerCase().includes(q) || (r.name || '').toLowerCase().includes(q) || (r.symbol || '').toLowerCase().includes(q) || (r.mint || '').toLowerCase().includes(q));
     if (S.coinFilter === 'kill') rows = rows.filter(r => r.verdict === 'kill' || r.verdict === 'reject');
     if (S.coinFilter === 'pass') rows = rows.filter(r => r.verdict === 'pass');
+    if (S.coinFilter === 'wait') rows = rows.filter(r => r.stage === 'waiting');
     if (S.coinFilter === 'auditor') rows = rows.filter(r => r.stage === 'auditor');
     if (S.coinFilter === 'analyst') rows = rows.filter(r => r.stage === 'analyst');
     if (S.coinSort === 'az') rows = rows.slice().sort((a, b) => (a.label || '').localeCompare(b.label || ''));
@@ -245,21 +317,22 @@
       </div>
       <input class="searchbox ${S.showFilt ? 'show' : ''}" id="coinq" placeholder="Search" value="${esc(S.coinQ)}">
       <div class="filters ${S.showFilt ? 'show' : ''}">
-        ${[['all','All'],['kill','Skip'],['pass','Pass'],['auditor','Check'],['analyst','Score']].map(([k,l]) =>
+        ${[['all','All'],['wait','Wait'],['kill','Skip'],['pass','Pass'],['auditor','Check'],['analyst','Score']].map(([k,l]) =>
           `<button class="chipbtn ${S.coinFilter===k?'on':''}" data-act="cfilt" data-v="${k}">${l}</button>`).join('')}
         <button class="chipbtn ${S.coinSort==='new'?'on':''}" data-act="csort" data-v="new">New</button>
         <button class="chipbtn ${S.coinSort==='az'?'on':''}" data-act="csort" data-v="az">A–Z</button>
       </div>
       ${rows.length ? `<div class="list">${rows.map(r => {
-        const badge = r.verdict === 'pass' ? 'up' : (r.verdict === 'kill' || r.verdict === 'reject' ? 'down' : 't2');
+        const stc = stateClass(r.stage, r.verdict);
         const id = r.mint;
         const open = S.openRow === id ? 'open' : '';
         const stageLab = SHORT[r.stage] || (r.stage === 'waiting' ? 'Wait' : (r.stage || ''));
-        return `<button class="row ${open}" style="width:100%;text-align:left" data-act="togrow" data-id="${esc(id)}" data-open="${r.verdict==='reject'&&r.stage==='auditor'?'audit':'coin'}" data-mint="${esc(r.mint)}">
+        const pill = r.verdict || (r.stage === 'waiting' ? 'wait' : 'check');
+        return `<button class="row st-${stc || 'check'} ${open}" style="width:100%;text-align:left" data-act="togrow" data-id="${esc(id)}" data-open="${r.verdict==='reject'&&r.stage==='auditor'?'audit':'coin'}" data-mint="${esc(r.mint)}">
           <div class="m"><b>${esc(r.label || r.symbol || r.name)}</b>
             <span>${esc(stageLab)} · ${esc(r.plain || '—')}</span>
             ${r.tech ? `<div class="detail">${esc(r.tech)}</div>` : ''}</div>
-          <div class="v ${badge}">${esc(r.verdict || (r.stage === 'waiting' ? 'wait' : '—'))}</div></button>`;
+          <div class="v"><span class="badge-pill ${stc || 'check'}">${esc(pill)}</span></div></button>`;
       }).join('')}</div>` : '<div class="list"><div class="empty-msg">None</div></div>'}`;
     const q = $('#coinq');
     if (q) q.addEventListener('input', () => { S.coinQ = q.value; clearTimeout(renderCoins._t); renderCoins._t = setTimeout(renderCoins, 120); });
@@ -426,6 +499,7 @@
   }
   function render() {
     document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === S.tab));
+    if (S.tab !== 'home') document.body.classList.remove('scanning');
     if (S.tab === 'home') renderHome();
     else if (S.tab === 'coins') renderCoins();
     else if (S.tab === 'trades') renderTrades();
