@@ -404,6 +404,21 @@
       ${(C.recent || []).slice(0, 12).map(o => `<div class="lrow"><b>${esc(o.mint.slice(0, 6))}…</b><span>base ${esc(o.base_decision)}${o.base_reason ? ' (' + esc(o.base_reason) + ')' : ''} · stricter ${esc(o.shadow_decision)}${o.shadow_reason ? ' (' + esc(o.shadow_reason) + ')' : ''}</span></div>`).join('')}
       </div>`;
   }
+  function researchCard() {
+    const R = (S.positions || {}).research;
+    if (!R) return '';
+    const fl = Object.entries(R.filters || {}).slice(0, 8).map(([k, g]) => `<tr><td>${esc(k)}</td><td>${g.n}</td><td>${g.protected_1h}/${g.too_strict_1h}</td><td>${g.n24 ? g.protected_24h + '/' + g.too_strict_24h : '—'}</td></tr>`).join('');
+    const order = ['<15m', '15-60m', '1-6h', '>6h', 'unknown'];
+    const dc = order.filter(k => (R.discovery || {})[k]).map(k => { const g = R.discovery[k]; return `<tr><td>${k}</td><td>${g.n}</td><td>${g.medianPeakAfterPct == null ? '—' : g.medianPeakAfterPct + '%'}</td><td>${g.ran30Pct == null ? '—' : g.ran30Pct + '%'}</td></tr>`; }).join('');
+    const cf = R.cfStop || {};
+    const cr = k => { const x = cf[k] || {}; return `<tr><td>${k}</td><td>${x.trades || 0}</td><td>${x.exp_10 == null ? '—' : '$' + x.exp_10.toFixed(2)}</td><td>${x.exp_12 == null ? '—' : '$' + x.exp_12.toFixed(2)}</td></tr>`; };
+    return `<div class="sec"><b>Research</b><span class="t2">logged only · ${R.coins} coins this test</span></div>
+      <div class="lessons">
+      <table class="cmp"><tr><th>Reject filter</th><th>n</th><th>1h ok/too strict</th><th>24h</th></tr>${fl || '<tr><td colspan="4">Needs 1h of follow-up</td></tr>'}</table>
+      <table class="cmp"><tr><th>Age at first sight</th><th>n</th><th>Median peak after</th><th>Ran 30%+</th></tr>${dc}</table>
+      <table class="cmp"><tr><th>Stop replay</th><th>n</th><th>10% exp</th><th>12% exp</th></tr>${cr('baseline')}${cr('shadow')}</table>
+      <div class="lnote">${esc(R.note)} ${esc(cf.note || '')}</div></div>`;
+  }
   function lessonsCard() {
     const L = (S.positions || {}).lessons;
     if (!L) return '';
@@ -525,6 +540,7 @@
       ${homeStats(ui)}
       ${myTrades()}
       ${shadowCard()}
+      ${researchCard()}
       ${lessonsCard()}
       ${focusCard(st)}
       <div class="chartwrap${chartFlat ? ' flat' : ''}"><canvas id="line"></canvas>${chartEmpty ? '<div class="empty">—</div>' : ''}</div>
