@@ -312,3 +312,25 @@ border:1px solid transparent;min-height:92px;display:flex;flex-direction:column;
   .bal .d>span,.stattile .sn .d>span{transition:none!important}
   body::before{opacity:.5}
 }
+
+.mytrades{margin:4px 0 8px}
+.mysum{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 16px 10px}
+.mysum div{background:var(--c1);border-radius:12px;padding:8px 6px;text-align:center}
+.mysum span{display:block;font-size:11px;color:var(--t2)}.mysum b{font-size:17px;font-variant-numeric:tabular-nums}
+.myopen{display:grid;grid-template-columns:1fr;gap:10px;margin:0 16px}
+@media(min-width:620px){.myopen{grid-template-columns:1fr 1fr}}
+.mycard{all:unset;box-sizing:border-box;display:block;cursor:pointer;background:var(--c1);border-radius:16px;padding:14px;border-left:4px solid var(--green);animation:myin .4s ease}
+.mycard.loss{border-left-color:var(--red)}
+.mytop{display:flex;justify-content:space-between;align-items:center}.mytop b{font-size:20px}
+.mypnl{font-size:28px;font-weight:800;margin:4px 0;font-variant-numeric:tabular-nums}.mypnl small{font-size:15px;font-weight:600}
+.mygrid{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:13px;color:var(--t2)}.mygrid b{color:#fff}
+.mywhy{margin-top:8px;font-size:12px;color:var(--cyan)}
+.mylist{margin:0 16px;background:var(--c1);border-radius:14px;overflow:hidden}
+.myrow{all:unset;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center;width:100%;padding:10px 14px;border-bottom:1px solid var(--c2);cursor:pointer}
+.myrow .m{display:flex;flex-direction:column}.myrow .m span{font-size:12px;color:var(--t2)}.myr{font-weight:700;font-variant-numeric:tabular-nums}
+.btag{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:6px;font-size:10px;font-weight:800;letter-spacing:.04em;background:var(--c2);color:var(--t2);vertical-align:middle}
+.btag.live{background:var(--green);color:#000}
+.tflash{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translate(-50%,-140%);z-index:60;padding:12px 18px;border-radius:14px;font-weight:800;font-size:15px;color:#000;transition:transform .35s cubic-bezier(.2,.9,.3,1.2);box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.tflash.good{background:var(--green)}.tflash.bad{background:var(--red);color:#fff}.tflash.show{transform:translate(-50%,0)}
+@keyframes myin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.mycard{animation:none}}

@@ -240,7 +240,7 @@
         const badge = r.badge || r.verdict || (r.stage === 'waiting' ? 'wait' : 'seen');
         return `<button class="rail-card ${stc} ${fresh && !reduce() ? 'fresh' : ''}" data-act="togrow" data-id="d-${esc(r.mint)}" data-open="${r.verdict === 'reject' && r.stage === 'auditor' ? 'audit' : 'coin'}" data-mint="${esc(r.mint)}">
           <span class="badge">${esc(badge)}</span>
-          <div class="sym">${esc(r.label || r.symbol || 'coin')}</div>
+          <div class="sym">${esc(r.label || r.symbol || 'coin')}${boughtTag(r.mint)}</div>
           <div class="meta">${esc(stage)}</div>
           <div class="why">${esc(r.plain || '—')}</div>
         </button>`;
@@ -260,7 +260,7 @@
         const title = r.label ? `${r.doing || r.status} · ${r.label}` : (r.doing || r.status || '—');
         return `<button class="tick ${out} ${fresh && !reduce() ? 'fresh' : ''}" data-act="togrow" data-id="st-${esc(id)}" data-open="coin" data-mint="${esc(r.mint || '')}">
           <span class="who">${esc(who)}</span>
-          <div class="m"><b>${esc(title)}</b><span>${esc(r.detail || '')}</span></div>
+          <div class="m"><b>${esc(title)}</b>${boughtTag(r.mint)}<span>${esc(r.detail || '')}</span></div>
           <span class="tm">${esc(hm(r.ts))}</span></button>`;
       }).join('')}</div>`;
   }
@@ -308,7 +308,7 @@
       const cls = r.fullPass ? 'pass' : (failed ? 'reject' : 'check');
       const badge = r.fullPass ? (r.tierLabel || 'Passed') : (failed ? (r.tierLabel || 'Skip') : (r.tierLabel || 'Live'));
       return `<button class="prow ${cls}" data-act="togrow" data-id="p-${esc(r.mint)}" data-open="${failed && r.tierKey === 'check' ? 'audit' : 'coin'}" data-mint="${esc(r.mint)}">
-        <div class="m"><b>${esc(r.symbol || r.label || 'coin')}</b>
+        <div class="m"><b>${esc(r.symbol || r.label || 'coin')}</b>${boughtTag(r.mint)}
           <span>${esc(r.plain || r.status || '')}</span></div>
         <div class="side">${tierDots(r.dots || r.tier, failed)}
           <span class="pbadge">${esc(badge)}</span></div>
@@ -323,6 +323,87 @@
       : '';
     return `<div class="sec"><b>Passed</b><span class="t2">${full.length ? full.length + ' paper' : 'tiered'}</span></div>
       ${fullBlock}${progBlock}`;
+  }
+
+  function boughtSet() {
+    const m = {};
+    ((S.positions && S.positions.rows) || []).forEach(r => { if (!m[r.mint]) m[r.mint] = r.open ? 'BOUGHT' : 'TRADED'; });
+    return m;
+  }
+  function boughtTag(mint) {
+    const b = S.bought && S.bought[mint];
+    return b ? `<span class="btag ${b === 'BOUGHT' ? 'live' : ''}">${b}</span>` : '';
+  }
+  function heldTxt(sec) {
+    if (sec == null) return '—';
+    if (sec < 3600) return Math.max(1, Math.round(sec / 60)) + 'm';
+    if (sec < 86400) return (sec / 3600).toFixed(1) + 'h';
+    return (sec / 86400).toFixed(1) + 'd';
+  }
+  function money(v) { if (v == null) return '—'; const a = Math.abs(v); return (v < 0 ? '-$' : '$') + (a >= 100 ? a.toFixed(0) : a.toFixed(2)); }
+  function sMoney(v) { return v == null ? '—' : (v >= 0 ? '+' : '') + money(v); }
+  function shortMc(v) { if (!v) return '—'; return v >= 1e6 ? '$' + (v / 1e6).toFixed(1) + 'M' : '$' + Math.round(v / 1e3) + 'K'; }
+  function tierOf(r) {
+    const sc = r.score;
+    const t = sc == null ? '' : (sc >= 85 ? 'Strong' : sc >= 70 ? 'Good' : 'Starter');
+    return (t ? t + ' · ' : '') + (sc != null ? 'score ' + sc : 'passed all 5 bots');
+  }
+  function myTrades() {
+    const data = S.positions || { rows: [] };
+    const rows = data.rows || [];
+    const sm = data.summary || {};
+    const open = rows.filter(r => r.open), closed = rows.filter(r => !r.open).slice(0, 8);
+    const tot = (sm.realized || 0) + (sm.unrealized || 0);
+    const exitTxt = { stop: 'Stop', trail: 'Trailing', timeout: 'Time limit', target: 'Target' };
+    const card = r => {
+      const up = (r.pnl_usd || 0) >= 0;
+      return `<button class="mycard ${up ? 'win' : 'loss'}" data-act="togrow" data-id="pos-${r.id}" data-open="coin" data-mint="${esc(r.mint)}">
+        <div class="mytop"><b>${esc(r.symbol || r.label || 'coin')}</b><span class="btag live">BOUGHT</span></div>
+        <div class="mypnl ${up ? 'up' : 'down'}">${sMoney(r.pnl_usd)} <small>${r.sincePct == null ? '' : pct(r.sincePct)}</small></div>
+        <div class="mygrid"><span>In <b>${money(r.size_usd)}</b></span><span>Mcap <b>${shortMc(r.entry_mcap)}</b></span>
+          <span>Held <b>${heldTxt(r.held_s)}</b></span><span>Entry <b>${r.entry_price != null ? Number(r.entry_price).toPrecision(3) : '—'}</b></span></div>
+        <div class="mywhy">${esc(tierOf(r))}</div>
+      </button>`;
+    };
+    const crow = r => {
+      const up = (r.pnl_usd || 0) >= 0;
+      return `<button class="myrow" data-act="togrow" data-id="pos-${r.id}" data-open="coin" data-mint="${esc(r.mint)}">
+        <div class="m"><b>${esc(r.symbol || r.label || 'coin')}</b><span>${esc(exitTxt[r.exit_reason] || r.exit_reason || 'closed')} · held ${heldTxt(r.held_s)}</span></div>
+        <div class="${up ? 'up' : 'down'} myr">${sMoney(r.pnl_usd)}</div></button>`;
+    };
+    return `<div class="mytrades">
+      <div class="sec"><b>My Trades</b><span class="t2">paper</span></div>
+      <div class="mysum">
+        <div><span>Open</span><b>${sm.open || 0}</b></div>
+        <div><span>Closed</span><b>${sm.closed || 0}</b></div>
+        <div><span>Win rate</span><b>${sm.winRate == null ? '—' : Math.round(sm.winRate) + '%'}</b></div>
+        <div><span>Total P&amp;L</span><b class="${tot >= 0 ? 'up' : 'down'}">${sMoney(tot)}</b></div>
+      </div>
+      ${open.length ? `<div class="myopen">${open.map(card).join('')}</div>` : '<div class="empty-msg soft">No open trades right now</div>'}
+      ${closed.length ? `<div class="sec"><b>Closed</b><span class="t2">realized ${sMoney(sm.realized)}</span></div><div class="mylist">${closed.map(crow).join('')}</div>` : ''}
+    </div>`;
+  }
+  function tradeFlash() {
+    const rows = (S.positions && S.positions.rows) || [];
+    const key = r => r.id + ':' + (r.open ? 'o' : 'c');
+    const now = new Set(rows.map(key));
+    if (S.posKeys) {
+      rows.forEach(r => {
+        if (S.posKeys.has(key(r))) return;
+        const sym = r.symbol || r.label || 'coin';
+        if (r.open) flash(`Bought ${sym} · ${money(r.size_usd)}`, true);
+        else flash(`Sold ${sym} · ${sMoney(r.pnl_usd)}`, (r.pnl_usd || 0) >= 0);
+      });
+    }
+    S.posKeys = now;
+  }
+  function flash(t, good) {
+    let el = document.getElementById('tflash');
+    if (!el) { el = document.createElement('div'); el.id = 'tflash'; document.body.appendChild(el); }
+    el.className = 'tflash ' + (good ? 'good' : 'bad'); el.textContent = t;
+    void el.offsetWidth; el.classList.add('show');
+    clearTimeout(flash.k); flash.k = setTimeout(() => el.classList.remove('show'), 3500);
+    if (navigator.vibrate) try { navigator.vibrate(30); } catch (e) {}
   }
 
   function renderHome() {
@@ -351,6 +432,7 @@
         <div class="today ${up ? 'up' : 'down'}">${pct(st.todayPct)}</div>
       </div>
       ${homeStats(ui)}
+      ${myTrades()}
       ${focusCard(st)}
       <div class="chartwrap${chartFlat ? ' flat' : ''}"><canvas id="line"></canvas>${chartEmpty ? '<div class="empty">—</div>' : ''}</div>
       <div class="ranges${chartFlat ? ' flat' : ''}">${['LIVE', '1H', '4H', '1D', '1W', 'ALL'].map(r => `<button data-range="${r}" class="${r === S.range ? 'on' : ''}">${r}</button>`).join('')}</div>
@@ -579,6 +661,7 @@
       }
       const r = await Promise.all(jobs);
       S.state = r[0]; S.chart = r[1]; S.activity = r[2]; S.positions = r[3] || { rows: [] }; S.coins = r[4] || { rows: [] };
+      S.bought = boughtSet(); tradeFlash();
       if (S.tab === 'team') {
         S.account = r[5];
         r.slice(6).forEach(d => { if (d && d.agent) S.decisions[d.agent] = d; });
