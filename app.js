@@ -386,6 +386,7 @@
         <div class="mygrid"><span>In <b>${money(r.size_usd)}</b></span><span>Mcap <b>${shortMc(r.entry_mcap)}</b></span>
           <span>Held <b data-held="${esc(r.opened_at || '')}">${liveHeld(r)}</b></span><span>Entry <b>${r.entry_price != null ? Number(r.entry_price).toPrecision(3) : '—'}</b></span></div>
         <div class="mywhy">Why bought: ${esc(r.why_buy || tierOf(r))}</div>
+        ${(r.signals || []).map(l => `<div class="sigline">${/^Smart/.test(l) ? '🐋' : (/X buzz/.test(l) ? '𝕏' : '🔥')} ${esc(l)}</div>`).join('')}
         ${openLinks(r)}
       </div>`;
     };
@@ -395,7 +396,8 @@
         <div class="m"><b>${esc(r.symbol || r.label || 'coin')} <span class="spill sold">SOLD ${etTime(r.closed_at)}</span></b>
           <span>Bought ${etTime(r.opened_at)} · held ${heldTxt(r.held_s)}</span>
           <span class="mywhy2">Why sold: ${esc(r.why_sell || exitTxt[r.exit_reason] || 'closed')}</span>
-          <span class="mywhy2 t3">Why bought: ${esc(r.why_buy || '')}</span></div>
+          <span class="mywhy2 t3">Why bought: ${esc(r.why_buy || '')}</span>
+          ${(r.signals || []).map(l => `<span class="mywhy2 sig">${esc(l)}</span>`).join('')}</div>
         <div class="myrside"><div class="${up ? 'up' : 'down'} myr">${sMoney(r.pnl_usd)}</div>${openLinks(r)}</div></div>`;
     };
     return `<div class="mytrades">
