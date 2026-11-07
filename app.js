@@ -42,6 +42,7 @@
       else if (path.startsWith('/search')) url = base + 'search.json';
       else if (path.startsWith('/agents/')) url = base + 'agents/' + path.split('/')[2] + '/decisions.json';
       else url = base + path.slice(1).replace(/\?.*$/, '') + '.json';
+      url += '?_=' + Math.floor(Date.now() / 15000);  // bust the Pages CDN (max-age=600) so data is never stale
     }
     const r = await fetch(url, opt);
     if (r.status === 404 && PLAN === 'B' && /\/(coin|audit)\//.test(path)) return null;
@@ -480,7 +481,7 @@
     document.body.classList.toggle('scanning', !!scanning && !reduce());
     if (S.openStep && ui.pipeline) {
       const p = ui.pipeline.find(x => x.step === S.openStep);
-      if (p && !S.decisions[p.agent]) get('/agents/' + p.agent + '/decisions').then(d => { if (d && d.agent) { S.decisions[d.agent] = d; if (S.tab === 'home') renderHome(); } }).catch(() => {});
+      if (p && (!S.decisions[p.agent] || Date.now() - (S.decisions[p.agent]._t || 0) > 10000)) get('/agents/' + p.agent + '/decisions').then(d => { if (d && d.agent) { d._t = Date.now(); const prev = S.decisions[d.agent]; S.decisions[d.agent] = d; if (S.tab === 'home' && JSON.stringify((prev || {}).rows) !== JSON.stringify(d.rows)) renderHome(); } }).catch(() => {});
     }
     const pts = (S.chart && S.chart.points) || [];
     let chartFlat = pts.length < 2;
