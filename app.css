@@ -365,3 +365,7 @@ border:1px solid transparent;min-height:92px;display:flex;flex-direction:column;
 .pnlrow{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--t2);margin-top:6px}.pnlrow b{color:#fff}
 .mywhy2{font-size:11px;color:var(--cyan)}.mywhy2.t3{color:var(--t3)}
 .sigline{margin-top:4px;font-size:12px;font-weight:700;color:var(--yellow)}.mywhy2.sig{color:var(--yellow)}
+
+.testbar{margin:2px 16px 6px}.testbar .statscopes{margin:0 0 4px}.testinfo{font-size:12px;color:var(--t2)}
+.testhead{font-size:12px;font-weight:800;color:var(--t2);padding:10px 14px 4px;letter-spacing:.03em}
+.pnlbox.archived .pnlranges{display:none}

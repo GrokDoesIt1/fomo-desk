@@ -370,11 +370,24 @@
     const t = sc == null ? '' : (sc >= 85 ? 'Strong' : sc >= 70 ? 'Good' : 'Starter');
     return (t ? t + ' · ' : '') + (sc != null ? 'score ' + sc : 'passed all 5 bots');
   }
+  function viewTest() { const d = S.positions || {}; return S.viewTest || d.current || 1; }
+  function testBar() {
+    const d = S.positions || {}; const cur = d.current || 1; const v = viewTest();
+    if (cur < 2) return '';
+    const tests = d.tests || [];
+    const t = tests.find(x => x.test === v) || {};
+    const chips = tests.map(x => `<button class="scopchip ${x.test === v ? 'on' : ''}" data-act="vtest" data-v="${x.test}">Test ${x.test}${x.test === cur ? ' · live' : ''}</button>`).join('');
+    const info = v === cur ? esc(d.label || ('Test ' + cur))
+      : `Test ${v} (archived) · $${(t.start || 0).toFixed(0)} → <b class="${(t.pnl || 0) >= 0 ? 'up' : 'down'}">$${(t.end || 0).toFixed(2)}</b> · ${sMoney(t.pnl)} · ${t.wins || 0}W/${t.losses || 0}L`;
+    return `<div class="testbar"><div class="statscopes">${chips}</div><div class="testinfo">${info}</div></div>`;
+  }
   function myTrades() {
     const data = S.positions || { rows: [] };
-    const rows = data.rows || [];
-    const sm = data.summary || {};
-    const open = rows.filter(r => r.open), closed = rows.filter(r => !r.open).slice(0, 8);
+    const vt = viewTest(), live = vt === (data.current || 1);
+    const rows = (data.rows || []).filter(r => (r.test || 1) === vt);
+    const ts = (data.tests || []).find(x => x.test === vt) || {};
+    const sm = live ? (data.summary || {}) : { open: 0, closed: ts.trades || 0, winRate: ts.trades ? 100 * ts.wins / ts.trades : null, realized: ts.pnl || 0, unrealized: 0 };
+    const open = rows.filter(r => r.open), closed = rows.filter(r => !r.open).slice(0, live ? 8 : 12);
     const tot = (sm.realized || 0) + (sm.unrealized || 0);
     const exitTxt = { stop: 'Stop', trail: 'Trailing', timeout: 'Time limit', target: 'Target' };
     const card = r => {
@@ -401,7 +414,7 @@
         <div class="myrside"><div class="${up ? 'up' : 'down'} myr">${sMoney(r.pnl_usd)}</div>${openLinks(r)}</div></div>`;
     };
     return `<div class="mytrades">
-      <div class="sec"><b>My Trades</b><span class="t2">paper</span></div>
+      <div class="sec"><b>My Trades</b><span class="t2">Test ${vt}${live ? '' : ' · archived'}</span></div>
       <div class="mysum">
         <div><span>Open</span><b>${sm.open || 0}</b></div>
         <div><span>Closed</span><b>${sm.closed || 0}</b></div>
@@ -465,6 +478,7 @@
         <div class="balrow"><div class="bal" id="bal"></div></div>
         <div class="today ${up ? 'up' : 'down'}">${pct(st.todayPct)}</div>
       </div>
+      ${testBar()}
       <div id="pnlph"></div>
       ${homeStats(ui)}
       ${myTrades()}
@@ -481,7 +495,13 @@
       <div class="sec"><b>Activity</b>
         <button class="btn" data-act="moreact" style="min-height:32px;font-size:12px;background:transparent;color:var(--blue)">${S.homeActAll ? 'Less' : 'All'}</button></div>
       <div id="act5">${activityList(S.activity, S.homeActAll ? 40 : 6)}</div>`;
-    if (window.PnlChart) { PnlChart.mount($('#pnlph')); PnlChart.update(S.pnl); }
+    if (window.PnlChart) {
+      PnlChart.mount($('#pnlph'));
+      const want = viewTest() === ((S.positions || {}).current || 1) ? PnlChart.state.range : 'T' + viewTest();
+      document.getElementById('pnlbox').classList.toggle('archived', want.startsWith('T'));
+      if (S.pnl && S.pnl.range === want) PnlChart.update(S.pnl);
+      else if (S.pnlWant !== want) { S.pnlWant = want; PnlChart.state.fit = true; get('/chart?range=' + want).then(d => { S.pnl = d; PnlChart.update(d); }).catch(() => {}); }
+    }
     odometer($('#bal'), usd(st.balance));
     const stats = ui.stats || {};
     const scoped = (stats.byScope && stats.byScope[S.homeScope || stats.scope || 'session']) || stats;
@@ -549,8 +569,12 @@
 
   function renderTrades() {
     const data = S.positions || { rows: [], open: 0 };
+    const cur = data.current || 1;
     const open = (data.rows || []).filter(r => r.open);
     const closed = (data.rows || []).filter(r => !r.open);
+    let lastT = null;
+    const thead = p => { const t = p.test || 1; if (t === lastT) return ''; lastT = t; const st = (data.tests || []).find(x => x.test === t) || {};
+      return `<div class="testhead">Test ${t}${t === cur ? ' · live' : ` · archived · ${st.wins || 0}W/${st.losses || 0}L · ${sMoney(st.pnl)}`}</div>`; };
     $('#view').innerHTML = navbar('Trades') + `
       ${open.length ? `<div class="list" style="margin-top:8px">${open.map(p => {
         const pnl = p.pnl_usd || 0;
@@ -560,9 +584,9 @@
             <div class="detail">${esc(p.exit_plain || '')}</div></div>
           <div class="v ${pnl >= 0 ? 'up' : 'down'}">${usd(pnl, true)}</div><div style="flex-basis:100%">${openLinks(p)}</div></div>`;
       }).join('')}</div>` : `<div class="list" style="margin-top:8px"><div class="empty-msg">No open trades</div></div>`}
-      ${closed.length ? `<div style="margin:16px 0 6px;font-size:13px;color:var(--t2)">Closed</div><div class="list">${closed.slice(0, 20).map(p => {
+      ${closed.length ? `<div style="margin:16px 0 6px;font-size:13px;color:var(--t2)">Closed</div><div class="list">${closed.slice(0, 120).map(p => {
         const pnl = p.pnl_usd || 0;
-        return `<div role="button" tabindex="0" class="row" style="width:100%;text-align:left;flex-wrap:wrap" data-open="coin" data-mint="${esc(p.mint)}">
+        return thead(p) + `<div role="button" tabindex="0" class="row" style="width:100%;text-align:left;flex-wrap:wrap" data-open="coin" data-mint="${esc(p.mint)}">
           <div class="m"><b>${esc(p.label)} <span class="spill sold">SOLD ${etTime(p.closed_at)}</span></b><span>Bought ${etTime(p.opened_at)} · ${esc(p.exit_plain || p.exit_reason || '')}</span></div>
           <div class="v ${pnl >= 0 ? 'up' : 'down'}">${usd(pnl, true)}</div><div style="flex-basis:100%">${openLinks(p)}</div></div>`;
       }).join('')}</div>` : ''}`;
@@ -690,7 +714,8 @@
   async function refresh() {
     if (!PLAN) return;
     try {
-      const pr = window.PnlChart ? PnlChart.state.range : '24H';
+      const live = viewTest() === ((S.positions || {}).current || 1);
+      const pr = !live ? 'T' + viewTest() : (window.PnlChart ? PnlChart.state.range : '24H');
       get('/chart?range=' + pr).then(d => { S.pnl = d; window.PnlChart && S.tab === 'home' && PnlChart.update(d); }).catch(() => {});
       const jobs = [get('/state'), get('/chart?range=' + S.range), get('/activity'), get('/positions'), get('/coins')];
       if (S.tab === 'team') {
@@ -729,6 +754,8 @@
 
   document.addEventListener('click', async e => {
     if (e.target.closest('a[href]')) return;
+    const vt = e.target.closest('[data-act="vtest"]');
+    if (vt) { S.viewTest = +vt.dataset.v; S.pnlWant = null; if (window.PnlChart) PnlChart.state.fit = true; render(); return; }
     const t = e.target.closest('[data-tab],[data-go],[data-range],[data-open],[data-act],[data-pause],[data-mode],[data-bool],[data-settings]');
     if (!t || t.disabled) return;
     if (t.dataset.tab || t.dataset.go) { closeOverlay(); S.tab = t.dataset.tab || t.dataset.go; render(); refresh(); window.scrollTo(0, 0); return; }
