@@ -359,12 +359,10 @@
     el.textContent = liveHeld({ opened_at: el.dataset.held });
   }), 1000);
   function fomoUrl(r) {
-    const u = r.coin_url && /^https:\/\/fomo\.family\//.test(r.coin_url) ? r.coin_url
-      : 'https://fomo.family/coin?address=' + encodeURIComponent(r.mint) + '&chainId=1399811149';
-    return u;
+    return r.coin_url && /^https:\/\/fomo\.family\//.test(r.coin_url) ? r.coin_url : null;  // built only in links.py
   }
   function openLinks(r) {
-    return `<div class="olinks"><a class="ofomo" href="${esc(fomoUrl(r))}" target="_blank" rel="noopener">Open on FOMO ↗</a>
+    return `<div class="olinks">${fomoUrl(r) ? `<a class="ofomo" href="${esc(fomoUrl(r))}" target="_blank" rel="noopener">Open on FOMO ↗</a>` : ''}
       <a class="odex" href="https://dexscreener.com/solana/${esc(encodeURIComponent(r.mint))}" target="_blank" rel="noopener">DexScreener</a></div>`;
   }
   function tierOf(r) {
