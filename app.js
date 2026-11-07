@@ -589,8 +589,9 @@
   function renderTrades() {
     const data = S.positions || { rows: [], open: 0 };
     const cur = data.current || 1;
-    const open = (data.rows || []).filter(r => r.open);
-    const closed = (data.rows || []).filter(r => !r.open);
+    const vt = viewTest();
+    const open = (data.rows || []).filter(r => r.open && (r.test || 1) === vt);
+    const closed = (data.rows || []).filter(r => !r.open && (r.test || 1) === vt);
     let lastT = null;
     const thead = p => { const t = p.test || 1; if (t === lastT) return ''; lastT = t; const st = (data.tests || []).find(x => x.test === t) || {};
       return `<div class="testhead">Test ${t}${t === cur ? ' · live' : ` · archived · ${st.wins || 0}W/${st.losses || 0}L · ${sMoney(st.pnl)}`}</div>`; };
@@ -605,7 +606,7 @@
       }).join('')}</div>` : `<div class="list" style="margin-top:8px"><div class="empty-msg">No open trades</div></div>`}
       ${closed.length ? `<div style="margin:16px 0 6px;font-size:13px;color:var(--t2)">Closed</div><div class="list">${closed.slice(0, 120).map(p => {
         const pnl = p.pnl_usd || 0;
-        return thead(p) + `<div role="button" tabindex="0" class="row" style="width:100%;text-align:left;flex-wrap:wrap" data-open="coin" data-mint="${esc(p.mint)}">
+        return `<div role="button" tabindex="0" class="row" style="width:100%;text-align:left;flex-wrap:wrap" data-open="coin" data-mint="${esc(p.mint)}">
           <div class="m"><b>${esc(p.label)} <span class="spill sold">SOLD ${etTime(p.closed_at)}</span></b><span>Bought ${etTime(p.opened_at)} · ${esc(p.exit_plain || p.exit_reason || '')}</span></div>
           <div class="v ${pnl >= 0 ? 'up' : 'down'}">${usd(pnl, true)}</div><div style="flex-basis:100%">${openLinks(p)}</div></div>`;
       }).join('')}</div>` : ''}`;
