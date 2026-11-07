@@ -114,10 +114,16 @@
       const buy = m.side === 'buy' || m.kind === 'bought';
       const win = (m.pnl != null ? m.pnl : (m.kind === 'gain' ? 1 : -1)) >= 0;
       return { time: snap(m._s), position: buy ? 'belowBar' : 'aboveBar', shape: buy ? 'arrowUp' : 'arrowDown',
-               color: buy ? '#00d35a' : (win ? '#00d35a' : '#ff453a'), size: 1.4 };
+               color: buy ? '#00d35a' : (win ? '#00d35a' : '#ff453a'), size: 1 };
     }).sort((a, b) => a.time - b.time);
     P.series.setMarkers(mk);
-    if (P.fit || !range) { P.chart.timeScale().fitContent(); P.fit = false; }
+    if (P.fit || !range) {
+      P.chart.timeScale().fitContent(); P.fit = false;
+      const first = P.marks.length ? Math.min(...P.marks.map(m => m._s)) : null;
+      if (first && times.length && first - 1800 > times[0]) {  // focus on the trading window; drag left for older history
+        try { P.chart.timeScale().setVisibleRange({ from: snap(first - 1800), to: times[times.length - 1] }); } catch (e) {}
+      }
+    }
     else if (atEnd) P.chart.timeScale().scrollToRealTime();
   }
 
