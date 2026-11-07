@@ -382,6 +382,28 @@
       : `Test ${v} (archived) · $${(t.start || 0).toFixed(0)} → <b class="${(t.pnl || 0) >= 0 ? 'up' : 'down'}">$${(t.end || 0).toFixed(2)}</b> · ${sMoney(t.pnl)} · ${t.wins || 0}W/${t.losses || 0}L`;
     return `<div class="testbar"><div class="statscopes">${chips}</div><div class="testinfo">${info}</div></div>`;
   }
+  function shadowCard() {
+    const C = (S.positions || {}).shadow;
+    if (!C) return '';
+    const f = (v, d = 2) => v === null || v === undefined ? '—' : (v === Infinity ? '∞' : Number(v).toFixed(d));
+    const row = (k, fn) => `<tr><td>${k}</td><td>${fn(C.baseline)}</td><td>${fn(C.shadow)}</td></tr>`;
+    const rq = x => `${x.rejects['rejected-correctly']} ✓ / ${x.rejects['rejected-then-ran']} ran · ${x.rejects.pending} pending`;
+    return `<div class="sec"><b>Baseline vs stricter (shadow)</b><span class="t2">paper · ${C.evaluated} opportunities logged</span></div>
+      <div class="lessons"><table class="cmp"><tr><th></th><th>Baseline</th><th>Stricter</th></tr>
+      ${row('Expectancy after costs', x => '$' + f(x.expectancyAfterCosts))}
+      ${row('Max drawdown', x => '$' + f(x.maxDrawdown))}
+      ${row('Rejects (correct / ran)', rq)}
+      ${row('Round trips', x => x.trades)}
+      ${row('Win rate', x => x.winRate === null ? '—' : x.winRate + '%')}
+      ${row('Profit factor', x => f(x.profitFactor))}
+      ${row('Realized after costs', x => '$' + f(x.realizedAfterSlip))}
+      ${row('Fees', x => '$' + f(x.fees))}
+      ${row('Slippage (modeled)', x => '$' + f(x.slippage))}
+      ${row('Largest loss', x => '$' + f(x.largestLoss))}</table>
+      <div class="lnote">${esc(C.note)} Baseline-only buys the stricter rules passed on: ${C.onlyBaselineBought}.</div>
+      ${(C.recent || []).slice(0, 12).map(o => `<div class="lrow"><b>${esc(o.mint.slice(0, 6))}…</b><span>base ${esc(o.base_decision)}${o.base_reason ? ' (' + esc(o.base_reason) + ')' : ''} · stricter ${esc(o.shadow_decision)}${o.shadow_reason ? ' (' + esc(o.shadow_reason) + ')' : ''}</span></div>`).join('')}
+      </div>`;
+  }
   function lessonsCard() {
     const L = (S.positions || {}).lessons;
     if (!L) return '';
@@ -395,8 +417,9 @@
         ${sk.map(x => `<div class="lrow"><b>Skipped · ${esc(x.reason)}</b><span>${x.n} coins · ${x.missedPct}% ran +30% after</span></div>`).join('')}
         ${(L.suggestions || []).map(x => `<div class="lsug">💡 ${esc(x.key.replace('risk.', ''))} ${x.from} → ${x.to}: ${esc(x.why)}</div>`).join('')}
         ${(L.skipNotes || []).map(x => `<div class="lsug">💡 ${esc(x)}</div>`).join('')}
-        ${(L.applied || []).slice(0, 3).map(x => `<div class="lapp">✅ Auto-tuned ${esc(x.key.replace('risk.', ''))} ${x.from} → ${x.to} · ${esc(x.why)}</div>`).join('')}
-        <div class="lnote">Auto-tunes only exits within safe ranges after ${L.minSample || 20}+ sells; safety gates never loosen.</div>
+        ${Object.entries(L.classes || {}).map(([k, n]) => `<div class="lrow"><b>${esc(k)}</b><span>${n}</span></div>`).join('')}
+        ${(L.applied || []).slice(0, 3).map(x => `<div class="lapp">Earlier auto-tune (before suggest-only): ${esc(x.key.replace('risk.', ''))} ${x.from} → ${x.to}</div>`).join('')}
+        <div class="lnote">Suggest-only: the learner never changes settings by itself. 💡 lines are ideas for you to approve.</div>
       </div>`;
   }
   function myTrades() {
@@ -501,6 +524,7 @@
       <div id="pnlph"></div>
       ${homeStats(ui)}
       ${myTrades()}
+      ${shadowCard()}
       ${lessonsCard()}
       ${focusCard(st)}
       <div class="chartwrap${chartFlat ? ' flat' : ''}"><canvas id="line"></canvas>${chartEmpty ? '<div class="empty">—</div>' : ''}</div>
