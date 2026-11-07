@@ -431,6 +431,11 @@
     if (navigator.vibrate) try { navigator.vibrate(30); } catch (e) {}
   }
 
+  if (window.PnlChart) {
+    PnlChart.state.onRange = r => get('/chart?range=' + r).then(d => { S.pnl = d; PnlChart.update(d); }).catch(() => {});
+    document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('#pnlbox') && window.Charts) Charts.view.busy = Date.now() + 6000; }, true);
+    document.addEventListener('touchmove', e => { if (e.target.closest && e.target.closest('#pnlbox') && window.Charts) Charts.view.busy = Date.now() + 4000; }, { capture: true, passive: true });
+  }
   function renderHome() {
     const st = S.state;
     if (!st) { $('#view').innerHTML = navbar() + skel(56) + skel(22) + skel(160) + skel(80); return; }
@@ -456,6 +461,7 @@
         <div class="balrow"><div class="bal" id="bal"></div></div>
         <div class="today ${up ? 'up' : 'down'}">${pct(st.todayPct)}</div>
       </div>
+      <div id="pnlph"></div>
       ${homeStats(ui)}
       ${myTrades()}
       ${focusCard(st)}
@@ -471,6 +477,7 @@
       <div class="sec"><b>Activity</b>
         <button class="btn" data-act="moreact" style="min-height:32px;font-size:12px;background:transparent;color:var(--blue)">${S.homeActAll ? 'Less' : 'All'}</button></div>
       <div id="act5">${activityList(S.activity, S.homeActAll ? 40 : 6)}</div>`;
+    if (window.PnlChart) { PnlChart.mount($('#pnlph')); PnlChart.update(S.pnl); }
     odometer($('#bal'), usd(st.balance));
     const stats = ui.stats || {};
     const scoped = (stats.byScope && stats.byScope[S.homeScope || stats.scope || 'session']) || stats;
@@ -544,16 +551,16 @@
       ${open.length ? `<div class="list" style="margin-top:8px">${open.map(p => {
         const pnl = p.pnl_usd || 0;
         const id = 'o-' + p.mint;
-        return `<button class="row ${S.openRow===id?'open':''}" style="width:100%;text-align:left" data-act="togrow" data-id="${esc(id)}" data-open="coin" data-mint="${esc(p.mint)}">
+        return `<div role="button" tabindex="0" class="row ${S.openRow===id?'open':''}" style="width:100%;text-align:left;flex-wrap:wrap" data-act="togrow" data-id="${esc(id)}" data-open="coin" data-mint="${esc(p.mint)}">
           <div class="m"><b>${esc(p.label)} <span class="spill in">STILL IN · <span data-held="${esc(p.opened_at || '')}">${liveHeld(p)}</span></span></b><span>Bought ${etTime(p.opened_at)} · ${usd(p.size_usd)} · ${pct(p.sincePct)}</span>
             <div class="detail">${esc(p.exit_plain || '')}</div></div>
-          <div class="v ${pnl >= 0 ? 'up' : 'down'}">${usd(pnl, true)}</div></button>`;
+          <div class="v ${pnl >= 0 ? 'up' : 'down'}">${usd(pnl, true)}</div><div style="flex-basis:100%">${openLinks(p)}</div></div>`;
       }).join('')}</div>` : `<div class="list" style="margin-top:8px"><div class="empty-msg">No open trades</div></div>`}
       ${closed.length ? `<div style="margin:16px 0 6px;font-size:13px;color:var(--t2)">Closed</div><div class="list">${closed.slice(0, 20).map(p => {
         const pnl = p.pnl_usd || 0;
-        return `<button class="row" style="width:100%;text-align:left" data-open="coin" data-mint="${esc(p.mint)}">
+        return `<div role="button" tabindex="0" class="row" style="width:100%;text-align:left;flex-wrap:wrap" data-open="coin" data-mint="${esc(p.mint)}">
           <div class="m"><b>${esc(p.label)} <span class="spill sold">SOLD ${etTime(p.closed_at)}</span></b><span>Bought ${etTime(p.opened_at)} · ${esc(p.exit_plain || p.exit_reason || '')}</span></div>
-          <div class="v ${pnl >= 0 ? 'up' : 'down'}">${usd(pnl, true)}</div></button>`;
+          <div class="v ${pnl >= 0 ? 'up' : 'down'}">${usd(pnl, true)}</div><div style="flex-basis:100%">${openLinks(p)}</div></div>`;
       }).join('')}</div>` : ''}`;
   }
 
@@ -679,6 +686,8 @@
   async function refresh() {
     if (!PLAN) return;
     try {
+      const pr = window.PnlChart ? PnlChart.state.range : '24H';
+      get('/chart?range=' + pr).then(d => { S.pnl = d; window.PnlChart && S.tab === 'home' && PnlChart.update(d); }).catch(() => {});
       const jobs = [get('/state'), get('/chart?range=' + S.range), get('/activity'), get('/positions'), get('/coins')];
       if (S.tab === 'team') {
         jobs.push(get('/account'));
