@@ -1,1 +1,1 @@
-{"agent":"auditor","rows":[],"paused":false}
+{"agent":"auditor","rows":[{"ts":"2026-11-07T19:50:44.950404Z","mint":"DFJkYbAMbd5v5i1KgfZfUbjzZgVKcHa46Vm6Q1wVpump","name":"JENNIE STEPS STAR","symbol":"JENSTEP","label":"JENSTEP","coin_url":"https://fomo.family/coin?address=DFJkYbAMbd5v5i1KgfZfUbjzZgVKcHa46Vm6Q1wVpump&chainId=1399811149&r=savipww&source=share_link","verdict":"reject","reason":"liquidity unlocked","plain":"Liquidity is not locked"}],"paused":false}
