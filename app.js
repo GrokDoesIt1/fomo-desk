@@ -327,12 +327,14 @@
 
   function boughtSet() {
     const m = {};
-    ((S.positions && S.positions.rows) || []).forEach(r => { if (!m[r.mint]) m[r.mint] = r.open ? 'BOUGHT' : 'TRADED'; });
+    ((S.positions && S.positions.rows) || []).forEach(r => { if (!m[r.mint]) m[r.mint] = r; });
     return m;
   }
   function boughtTag(mint) {
-    const b = S.bought && S.bought[mint];
-    return b ? `<span class="btag ${b === 'BOUGHT' ? 'live' : ''}">${b}</span>` : '';
+    const r = S.bought && S.bought[mint];
+    if (!r) return '';
+    return r.open ? `<span class="btag live">STILL IN · ${etTime(r.opened_at)}</span>`
+      : `<span class="btag">SOLD ${etTime(r.closed_at)} · ${esc(r.exit_reason || '')}</span>`;
   }
   function heldTxt(sec) {
     if (sec == null) return '—';
@@ -343,6 +345,19 @@
   function money(v) { if (v == null) return '—'; const a = Math.abs(v); return (v < 0 ? '-$' : '$') + (a >= 100 ? a.toFixed(0) : a.toFixed(2)); }
   function sMoney(v) { return v == null ? '—' : (v >= 0 ? '+' : '') + money(v); }
   function shortMc(v) { if (!v) return '—'; return v >= 1e6 ? '$' + (v / 1e6).toFixed(1) + 'M' : '$' + Math.round(v / 1e3) + 'K'; }
+  function etTime(iso) {
+    if (!iso) return '—';
+    try { return new Date(iso).toLocaleTimeString('en-US', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit' }) + ' ET'; } catch (e) { return '—'; }
+  }
+  function liveHeld(r) {
+    if (!r.opened_at) return heldTxt(r.held_s);
+    const s = Math.max(0, (Date.now() - Date.parse(r.opened_at)) / 1000);
+    const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), sec = Math.floor(s % 60);
+    return (h ? h + 'h ' : '') + m + 'm ' + String(sec).padStart(2, '0') + 's';
+  }
+  setInterval(() => document.querySelectorAll('[data-held]').forEach(el => {
+    el.textContent = liveHeld({ opened_at: el.dataset.held });
+  }), 1000);
   function tierOf(r) {
     const sc = r.score;
     const t = sc == null ? '' : (sc >= 85 ? 'Strong' : sc >= 70 ? 'Good' : 'Starter');
@@ -358,17 +373,19 @@
     const card = r => {
       const up = (r.pnl_usd || 0) >= 0;
       return `<button class="mycard ${up ? 'win' : 'loss'}" data-act="togrow" data-id="pos-${r.id}" data-open="coin" data-mint="${esc(r.mint)}">
-        <div class="mytop"><b>${esc(r.symbol || r.label || 'coin')}</b><span class="btag live">BOUGHT</span></div>
+        <div class="mytop"><b>${esc(r.symbol || r.label || 'coin')}</b><span class="spill in">STILL IN · <span data-held="${esc(r.opened_at || '')}">${liveHeld(r)}</span></span></div>
+        <div class="mytime">Bought ${etTime(r.opened_at)}</div>
         <div class="mypnl ${up ? 'up' : 'down'}">${sMoney(r.pnl_usd)} <small>${r.sincePct == null ? '' : pct(r.sincePct)}</small></div>
         <div class="mygrid"><span>In <b>${money(r.size_usd)}</b></span><span>Mcap <b>${shortMc(r.entry_mcap)}</b></span>
-          <span>Held <b>${heldTxt(r.held_s)}</b></span><span>Entry <b>${r.entry_price != null ? Number(r.entry_price).toPrecision(3) : '—'}</b></span></div>
+          <span>Held <b data-held="${esc(r.opened_at || '')}">${liveHeld(r)}</b></span><span>Entry <b>${r.entry_price != null ? Number(r.entry_price).toPrecision(3) : '—'}</b></span></div>
         <div class="mywhy">${esc(tierOf(r))}</div>
       </button>`;
     };
     const crow = r => {
       const up = (r.pnl_usd || 0) >= 0;
       return `<button class="myrow" data-act="togrow" data-id="pos-${r.id}" data-open="coin" data-mint="${esc(r.mint)}">
-        <div class="m"><b>${esc(r.symbol || r.label || 'coin')}</b><span>${esc(exitTxt[r.exit_reason] || r.exit_reason || 'closed')} · held ${heldTxt(r.held_s)}</span></div>
+        <div class="m"><b>${esc(r.symbol || r.label || 'coin')} <span class="spill sold">SOLD ${etTime(r.closed_at)}</span></b>
+          <span>Bought ${etTime(r.opened_at)} · ${esc(exitTxt[r.exit_reason] || r.exit_reason || 'closed')} · held ${heldTxt(r.held_s)}</span></div>
         <div class="${up ? 'up' : 'down'} myr">${sMoney(r.pnl_usd)}</div></button>`;
     };
     return `<div class="mytrades">
@@ -435,7 +452,7 @@
       ${myTrades()}
       ${focusCard(st)}
       <div class="chartwrap${chartFlat ? ' flat' : ''}"><canvas id="line"></canvas>${chartEmpty ? '<div class="empty">—</div>' : ''}</div>
-      <div class="ranges${chartFlat ? ' flat' : ''}">${['LIVE', '1H', '4H', '1D', '1W', 'ALL'].map(r => `<button data-range="${r}" class="${r === S.range ? 'on' : ''}">${r}</button>`).join('')}</div>
+      <div class="ranges${chartFlat ? ' flat' : ''}">${['LIVE', '1H', '6H', '24H', 'ALL'].map(r => `<button data-range="${r}" class="${r === S.range ? 'on' : ''}">${r}</button>`).join('')}</div>
       ${pipelineStrip(ui)}
       ${stepPanel(ui)}
       ${agentLane(ui)}
@@ -462,7 +479,7 @@
       }
       S.prevStats[k] = text;
     });
-    const cv = $('#line'); if (cv && S.chart) { Charts.line(cv, S.chart, S.prevPts); S.prevPts = (S.chart.points || []).length; }
+    const cv = $('#line'); if (cv && S.chart) { Charts.line(cv, S.chart, S.prevPts); Charts.interact(cv, S.chart, m => m && m.mint && openCoin(m.mint)); S.prevPts = (S.chart.points || []).length; }
   }
 
   function filteredCoins() {
@@ -520,14 +537,14 @@
         const pnl = p.pnl_usd || 0;
         const id = 'o-' + p.mint;
         return `<button class="row ${S.openRow===id?'open':''}" style="width:100%;text-align:left" data-act="togrow" data-id="${esc(id)}" data-open="coin" data-mint="${esc(p.mint)}">
-          <div class="m"><b>${esc(p.label)}</b><span>${usd(p.size_usd)} · ${pct(p.sincePct)}</span>
+          <div class="m"><b>${esc(p.label)} <span class="spill in">STILL IN · <span data-held="${esc(p.opened_at || '')}">${liveHeld(p)}</span></span></b><span>Bought ${etTime(p.opened_at)} · ${usd(p.size_usd)} · ${pct(p.sincePct)}</span>
             <div class="detail">${esc(p.exit_plain || '')}</div></div>
           <div class="v ${pnl >= 0 ? 'up' : 'down'}">${usd(pnl, true)}</div></button>`;
       }).join('')}</div>` : `<div class="list" style="margin-top:8px"><div class="empty-msg">No open trades</div></div>`}
       ${closed.length ? `<div style="margin:16px 0 6px;font-size:13px;color:var(--t2)">Closed</div><div class="list">${closed.slice(0, 20).map(p => {
         const pnl = p.pnl_usd || 0;
         return `<button class="row" style="width:100%;text-align:left" data-open="coin" data-mint="${esc(p.mint)}">
-          <div class="m"><b>${esc(p.label)}</b><span>${esc(p.exit_plain || p.exit_reason || '')}</span></div>
+          <div class="m"><b>${esc(p.label)} <span class="spill sold">SOLD ${etTime(p.closed_at)}</span></b><span>Bought ${etTime(p.opened_at)} · ${esc(p.exit_plain || p.exit_reason || '')}</span></div>
           <div class="v ${pnl >= 0 ? 'up' : 'down'}">${usd(pnl, true)}</div></button>`;
       }).join('')}</div>` : ''}`;
   }
@@ -674,7 +691,7 @@
   function render() {
     document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === S.tab));
     if (S.tab !== 'home') document.body.classList.remove('scanning');
-    if (S.tab === 'home') renderHome();
+    if (S.tab === 'home') { if (!(window.Charts && Charts.view.busy > Date.now())) renderHome(); }
     else if (S.tab === 'coins') renderCoins();
     else if (S.tab === 'trades') renderTrades();
     else renderTeam();
