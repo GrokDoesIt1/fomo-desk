@@ -358,6 +358,15 @@
   setInterval(() => document.querySelectorAll('[data-held]').forEach(el => {
     el.textContent = liveHeld({ opened_at: el.dataset.held });
   }), 1000);
+  function fomoUrl(r) {
+    const u = r.coin_url && /^https:\/\/fomo\.family\//.test(r.coin_url) ? r.coin_url
+      : 'https://fomo.family/coin?address=' + encodeURIComponent(r.mint) + '&chainId=1399811149';
+    return u;
+  }
+  function openLinks(r) {
+    return `<div class="olinks"><a class="ofomo" href="${esc(fomoUrl(r))}" target="_blank" rel="noopener">Open on FOMO ↗</a>
+      <a class="odex" href="https://dexscreener.com/solana/${esc(encodeURIComponent(r.mint))}" target="_blank" rel="noopener">DexScreener</a></div>`;
+  }
   function tierOf(r) {
     const sc = r.score;
     const t = sc == null ? '' : (sc >= 85 ? 'Strong' : sc >= 70 ? 'Good' : 'Starter');
@@ -372,21 +381,22 @@
     const exitTxt = { stop: 'Stop', trail: 'Trailing', timeout: 'Time limit', target: 'Target' };
     const card = r => {
       const up = (r.pnl_usd || 0) >= 0;
-      return `<button class="mycard ${up ? 'win' : 'loss'}" data-act="togrow" data-id="pos-${r.id}" data-open="coin" data-mint="${esc(r.mint)}">
+      return `<div class="mycard ${up ? 'win' : 'loss'}" data-act="togrow" data-id="pos-${r.id}" data-open="coin" data-mint="${esc(r.mint)}" role="button" tabindex="0">
         <div class="mytop"><b>${esc(r.symbol || r.label || 'coin')}</b><span class="spill in">STILL IN · <span data-held="${esc(r.opened_at || '')}">${liveHeld(r)}</span></span></div>
         <div class="mytime">Bought ${etTime(r.opened_at)}</div>
         <div class="mypnl ${up ? 'up' : 'down'}">${sMoney(r.pnl_usd)} <small>${r.sincePct == null ? '' : pct(r.sincePct)}</small></div>
         <div class="mygrid"><span>In <b>${money(r.size_usd)}</b></span><span>Mcap <b>${shortMc(r.entry_mcap)}</b></span>
           <span>Held <b data-held="${esc(r.opened_at || '')}">${liveHeld(r)}</b></span><span>Entry <b>${r.entry_price != null ? Number(r.entry_price).toPrecision(3) : '—'}</b></span></div>
         <div class="mywhy">${esc(tierOf(r))}</div>
-      </button>`;
+        ${openLinks(r)}
+      </div>`;
     };
     const crow = r => {
       const up = (r.pnl_usd || 0) >= 0;
-      return `<button class="myrow" data-act="togrow" data-id="pos-${r.id}" data-open="coin" data-mint="${esc(r.mint)}">
+      return `<div class="myrow" data-act="togrow" data-id="pos-${r.id}" data-open="coin" data-mint="${esc(r.mint)}" role="button" tabindex="0">
         <div class="m"><b>${esc(r.symbol || r.label || 'coin')} <span class="spill sold">SOLD ${etTime(r.closed_at)}</span></b>
           <span>Bought ${etTime(r.opened_at)} · ${esc(exitTxt[r.exit_reason] || r.exit_reason || 'closed')} · held ${heldTxt(r.held_s)}</span></div>
-        <div class="${up ? 'up' : 'down'} myr">${sMoney(r.pnl_usd)}</div></button>`;
+        <div class="myrside"><div class="${up ? 'up' : 'down'} myr">${sMoney(r.pnl_usd)}</div>${openLinks(r)}</div></div>`;
     };
     return `<div class="mytrades">
       <div class="sec"><b>My Trades</b><span class="t2">paper</span></div>
@@ -707,6 +717,7 @@
   }
 
   document.addEventListener('click', async e => {
+    if (e.target.closest('a[href]')) return;
     const t = e.target.closest('[data-tab],[data-go],[data-range],[data-open],[data-act],[data-pause],[data-mode],[data-bool],[data-settings]');
     if (!t || t.disabled) return;
     if (t.dataset.tab || t.dataset.go) { closeOverlay(); S.tab = t.dataset.tab || t.dataset.go; render(); refresh(); window.scrollTo(0, 0); return; }
