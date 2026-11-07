@@ -385,7 +385,7 @@
         <div class="mypnl ${up ? 'up' : 'down'}">${sMoney(r.pnl_usd)} <small>${r.sincePct == null ? '' : pct(r.sincePct)}</small></div>
         <div class="mygrid"><span>In <b>${money(r.size_usd)}</b></span><span>Mcap <b>${shortMc(r.entry_mcap)}</b></span>
           <span>Held <b data-held="${esc(r.opened_at || '')}">${liveHeld(r)}</b></span><span>Entry <b>${r.entry_price != null ? Number(r.entry_price).toPrecision(3) : '—'}</b></span></div>
-        <div class="mywhy">${esc(tierOf(r))}</div>
+        <div class="mywhy">Why bought: ${esc(r.why_buy || tierOf(r))}</div>
         ${openLinks(r)}
       </div>`;
     };
@@ -393,7 +393,9 @@
       const up = (r.pnl_usd || 0) >= 0;
       return `<div class="myrow" data-act="togrow" data-id="pos-${r.id}" data-open="coin" data-mint="${esc(r.mint)}" role="button" tabindex="0">
         <div class="m"><b>${esc(r.symbol || r.label || 'coin')} <span class="spill sold">SOLD ${etTime(r.closed_at)}</span></b>
-          <span>Bought ${etTime(r.opened_at)} · ${esc(exitTxt[r.exit_reason] || r.exit_reason || 'closed')} · held ${heldTxt(r.held_s)}</span></div>
+          <span>Bought ${etTime(r.opened_at)} · held ${heldTxt(r.held_s)}</span>
+          <span class="mywhy2">Why sold: ${esc(r.why_sell || exitTxt[r.exit_reason] || 'closed')}</span>
+          <span class="mywhy2 t3">Why bought: ${esc(r.why_buy || '')}</span></div>
         <div class="myrside"><div class="${up ? 'up' : 'down'} myr">${sMoney(r.pnl_usd)}</div>${openLinks(r)}</div></div>`;
     };
     return `<div class="mytrades">
