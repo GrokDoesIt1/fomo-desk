@@ -381,6 +381,23 @@
       : `Test ${v} (archived) · $${(t.start || 0).toFixed(0)} → <b class="${(t.pnl || 0) >= 0 ? 'up' : 'down'}">$${(t.end || 0).toFixed(2)}</b> · ${sMoney(t.pnl)} · ${t.wins || 0}W/${t.losses || 0}L`;
     return `<div class="testbar"><div class="statscopes">${chips}</div><div class="testinfo">${info}</div></div>`;
   }
+  function lessonsCard() {
+    const L = (S.positions || {}).lessons;
+    if (!L) return '';
+    const g = (L.groups || []).filter(x => x.kind === 'trade');
+    const sk = (L.groups || []).filter(x => x.kind === 'skip').sort((a, b) => b.n - a.n).slice(0, 3);
+    const nm = { stop: 'Stop', trail: 'Trailing', take_profit: 'Half profit', timeout: 'Time stop', liq_drop: 'Liquidity exit', test_end: 'Test end' };
+    return `<div class="sec"><b>Lessons</b><span class="t2">after-sell tracking · ${L.tracking || 0} watched</span></div>
+      <div class="lessons">
+        ${g.length ? g.map(x => `<div class="lrow"><b>${esc(nm[x.reason] || x.reason)}</b><span>${x.n} sells · <i class="ab missed">${x.missedPct}% missed</i> <i class="ab saved">${x.savedPct}% saved</i> · median peak after ${x.medPeak >= 0 ? '+' : ''}${x.medPeak}%</span></div>`).join('')
+          : '<div class="lrow"><span>Needs 1h of follow-up after sells before lessons show.</span></div>'}
+        ${sk.map(x => `<div class="lrow"><b>Skipped · ${esc(x.reason)}</b><span>${x.n} coins · ${x.missedPct}% ran +30% after</span></div>`).join('')}
+        ${(L.suggestions || []).map(x => `<div class="lsug">💡 ${esc(x.key.replace('risk.', ''))} ${x.from} → ${x.to}: ${esc(x.why)}</div>`).join('')}
+        ${(L.skipNotes || []).map(x => `<div class="lsug">💡 ${esc(x)}</div>`).join('')}
+        ${(L.applied || []).slice(0, 3).map(x => `<div class="lapp">✅ Auto-tuned ${esc(x.key.replace('risk.', ''))} ${x.from} → ${x.to} · ${esc(x.why)}</div>`).join('')}
+        <div class="lnote">Auto-tunes only exits within safe ranges after ${L.minSample || 20}+ sells; safety gates never loosen.</div>
+      </div>`;
+  }
   function myTrades() {
     const data = S.positions || { rows: [] };
     const vt = viewTest(), live = vt === (data.current || 1);
@@ -409,6 +426,7 @@
         <div class="m"><b>${esc(r.symbol || r.label || 'coin')} <span class="spill sold">SOLD ${etTime(r.closed_at)}</span></b>
           <span>Bought ${etTime(r.opened_at)} · held ${heldTxt(r.held_s)}</span>
           <span class="mywhy2">Why sold: ${esc(r.why_sell || exitTxt[r.exit_reason] || 'closed')}</span>
+          ${r.after ? `<span class="mywhy2 aft">After sell: peaked ${r.after.peakPct >= 0 ? '+' : ''}${r.after.peakPct}% / now ${r.after.nowPct >= 0 ? '+' : ''}${r.after.nowPct}% <i class="ab ${r.after.badge.toLowerCase()}">${r.after.badge}</i></span>` : ''}
           <span class="mywhy2 t3">Why bought: ${esc(r.why_buy || '')}</span>
           ${(r.signals || []).map(l => `<span class="mywhy2 sig">${esc(l)}</span>`).join('')}</div>
         <div class="myrside"><div class="${up ? 'up' : 'down'} myr">${sMoney(r.pnl_usd)}</div>${openLinks(r)}</div></div>`;
@@ -482,6 +500,7 @@
       <div id="pnlph"></div>
       ${homeStats(ui)}
       ${myTrades()}
+      ${lessonsCard()}
       ${focusCard(st)}
       <div class="chartwrap${chartFlat ? ' flat' : ''}"><canvas id="line"></canvas>${chartEmpty ? '<div class="empty">—</div>' : ''}</div>
       <div class="ranges${chartFlat ? ' flat' : ''}">${['LIVE', '1H', '6H', '24H', 'ALL'].map(r => `<button data-range="${r}" class="${r === S.range ? 'on' : ''}">${r}</button>`).join('')}</div>
