@@ -380,3 +380,38 @@ border:1px solid transparent;min-height:92px;display:flex;flex-direction:column;
 /* size label */
 
 .cmp{width:100%;border-collapse:collapse;font-size:13px}.cmp td,.cmp th{padding:4px 6px;text-align:right;border-bottom:1px solid rgba(127,127,127,.15)}.cmp td:first-child,.cmp th:first-child{text-align:left}
+/* ===== Terminal theme (visual only) ===== */
+:root{--bg:#07090b;--c1:#111418;--c2:#1a1f25;--sep:rgba(255,255,255,.07);--green:#16e07a;--red:#ff4d5e;--cyan:#38d6f5;--orange:#ffa53a;--blue:#38d6f5}
+html,body{background:var(--bg)}
+body{background:radial-gradient(120% 60% at 50% -10%,#0d1a17 0,var(--bg) 55%) fixed}
+main{max-width:720px;margin:0 auto;overflow-x:hidden}
+body *{max-width:100%}
+.num,.v,.price,.bal,td,.rjm,.cmp{font-variant-numeric:tabular-nums}
+.hero{padding:6px 0 4px}
+.bal{font-size:56px;letter-spacing:-1px}
+.blk{background:var(--c1);border:1px solid var(--sep);border-radius:18px;padding:4px 14px 12px;margin:14px 0;overflow:hidden}
+.blk:empty{display:none}
+.blk .sec{margin-top:10px}
+.sec b{font-size:15px;letter-spacing:.2px}
+.sec .t2{font-size:12px}
+.lessons{background:transparent!important}
+.cmp td,.cmp th{border-bottom:1px solid var(--sep)!important;padding:7px 4px!important}
+.cmp th{color:var(--t2);font-weight:500;font-size:12px}
+.rj{display:flex;flex-direction:column}
+.rjrow{display:grid;grid-template-columns:1fr;gap:2px;text-align:left;padding:10px 0;border-bottom:1px solid var(--sep);min-height:44px;width:100%}
+.rjrow:last-child{border-bottom:0}
+.rjt{display:flex;align-items:center;gap:8px}
+.rjt b{font-size:15px}
+.stg{font-style:normal;font-size:11px;font-weight:600;padding:2px 7px;border-radius:8px;background:rgba(255,77,94,.14);color:var(--red)}
+.rjr{color:var(--red);font-size:13px;overflow-wrap:anywhere}
+.rjm{color:var(--t2);font-size:12px}
+details.tech{margin:14px 0 6px;border:1px solid var(--sep);border-radius:18px;background:var(--c1);padding:0 14px}
+details.tech summary{min-height:48px;display:flex;align-items:center;color:var(--cyan);font-weight:600;cursor:pointer;list-style:none}
+details.tech summary::after{content:"▾";margin-left:auto;color:var(--t2)}
+details.tech[open] summary::after{content:"▴"}
+.btn,button.scopchip,.ranges button{min-height:40px}
+.up{color:var(--green)}.down{color:var(--red)}
+.pulse{box-shadow:0 0 6px var(--green)}
+@media (prefers-reduced-motion:no-preference){.blk{animation:fadein .35s ease both}}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+#tabs{background:rgba(7,9,11,.92)!important;backdrop-filter:blur(14px);border-top:1px solid var(--sep)}

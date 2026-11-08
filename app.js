@@ -382,6 +382,18 @@
       : `Test ${v} (archived) · $${(t.start || 0).toFixed(0)} → <b class="${(t.pnl || 0) >= 0 ? 'up' : 'down'}">$${(t.end || 0).toFixed(2)}</b> · ${sMoney(t.pnl)} · ${t.wins || 0}W/${t.losses || 0}L`;
     return `<div class="testbar"><div class="statscopes">${chips}</div><div class="testinfo">${info}</div></div>`;
   }
+  function rejectsCard() {
+    const R = ((S.positions || {}).rejects || []).filter(r => r.strategy === 'baseline').slice(0, 12);
+    const stg = { look: 'Look', check: 'Check', score: 'Score', size: 'Size', guard: 'Guard' };
+    const tm = t => new Date(t * 1000).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York' });
+    const k = n => n == null ? '—' : '$' + (n >= 1000 ? (n / 1000).toFixed(n >= 1e5 ? 0 : 1) + 'K' : Math.round(n));
+    return `<div class="sec"><b>Rejected</b><span class="t2">latest · reason inline</span></div>
+      <div class="rj">${R.length ? R.map(r => `<button class="rjrow" data-open="${esc(r.mint)}">
+        <span class="rjt"><b>${esc(r.symbol || r.mint.slice(0, 6))}</b><i class="stg">${stg[r.stage] || esc(r.stage)}</i></span>
+        <span class="rjr">${esc(r.reason || '')}</span>
+        <span class="rjm num">${r.score != null ? 'score ' + r.score + ' · ' : ''}liq ${k(r.liquidity_usd)} · ${tm(r.ts)} ET</span></button>`).join('')
+        : '<div class="lrow"><span>No rejects logged yet.</span></div>'}</div>`;
+  }
   function shadowCard() {
     const C = (S.positions || {}).shadow;
     if (!C) return '';
@@ -537,21 +549,21 @@
       </div>
       ${testBar()}
       <div id="pnlph"></div>
-      ${homeStats(ui)}
-      ${myTrades()}
-      ${shadowCard()}
-      ${researchCard()}
-      ${lessonsCard()}
-      ${focusCard(st)}
+      <section class="blk">${shadowCard()}</section>
+      <section class="blk"><div class="sec"><b>Pipeline</b><span class="t2">Look · Check · Score · Size · Guard</span></div>
+      ${pipelineStrip(ui)}
+      ${stepPanel(ui)}</section>
+      <section class="blk">${focusCard(st)}${discoveryRail(ui)}</section>
+      <section class="blk">${rejectsCard()}</section>
+      <section class="blk">${myTrades()}</section>
+      <section class="blk">${homeStats(ui)}${researchCard()}${lessonsCard()}</section>
+      <details class="tech"><summary>Technical details</summary>
       <div class="chartwrap${chartFlat ? ' flat' : ''}"><canvas id="line"></canvas>${chartEmpty ? '<div class="empty">—</div>' : ''}</div>
       <div class="ranges${chartFlat ? ' flat' : ''}">${['LIVE', '1H', '6H', '24H', 'ALL'].map(r => `<button data-range="${r}" class="${r === S.range ? 'on' : ''}">${r}</button>`).join('')}</div>
-      ${pipelineStrip(ui)}
-      ${stepPanel(ui)}
       ${agentLane(ui)}
       ${passLadder(ui)}
-      ${discoveryRail(ui)}
       ${stageTicker(ui)}
-      ${reasonMini(ui.killReasons)}
+      ${reasonMini(ui.killReasons)}</details>
       <div class="sec"><b>Activity</b>
         <button class="btn" data-act="moreact" style="min-height:32px;font-size:12px;background:transparent;color:var(--blue)">${S.homeActAll ? 'Less' : 'All'}</button></div>
       <div id="act5">${activityList(S.activity, S.homeActAll ? 40 : 6)}</div>`;
