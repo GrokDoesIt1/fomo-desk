@@ -415,3 +415,27 @@ details.tech[open] summary::after{content:"▴"}
 @media (prefers-reduced-motion:no-preference){.blk{animation:fadein .35s ease both}}
 @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 #tabs{background:rgba(7,9,11,.92)!important;backdrop-filter:blur(14px);border-top:1px solid var(--sep)}
+/* ===== reference home (visual only) ===== */
+.gbhead{display:flex;align-items:center;justify-content:space-between;height:56px}
+.gbname{display:flex;align-items:center;gap:10px;font:600 20px var(--disp)}
+.gbname i{font-style:normal;color:var(--t2)}
+.livepill{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 14px;border-radius:16px;background:rgba(22,224,122,.12);color:var(--green);font-weight:600}
+.gbsub{color:var(--t2);font-size:14px;display:flex;align-items:center;gap:6px}
+.gdot{width:6px;height:6px;border-radius:3px;background:var(--green);display:inline-block}
+.hero .bal{font-size:64px;font-weight:700}
+.gbchg{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:600;margin-top:6px;font-variant-numeric:tabular-nums}
+.multpill{background:rgba(22,224,122,.18);color:var(--green);border-radius:10px;padding:3px 9px;font-size:15px}
+.multpill.dn{background:rgba(255,77,94,.16);color:var(--red)}
+.gbsec{margin-top:18px}
+.gbsec b{font:700 22px var(--disp)}
+.gbrun,.seeall{color:var(--green);font-size:15px;min-height:40px;display:flex;align-items:center}
+.agcar{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:8px -16px 6px;padding:0 16px;scrollbar-width:none}
+.agcar::-webkit-scrollbar{display:none}
+.agcard{flex:0 0 72%;scroll-snap-align:start;background:var(--c1);border:1px solid var(--sep);border-radius:18px;padding:14px;text-align:left;min-height:150px;display:flex;flex-direction:column;gap:10px;max-width:none}
+.agcard.on{border-color:rgba(56,214,245,.35)}
+.agtop{display:flex;gap:10px;align-items:center}
+.agtop b{font-size:17px;display:block}
+.agico{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:18px}
+.agst{font-size:13px;color:var(--t2);display:flex;align-items:center;gap:5px}
+.agst i{width:6px;height:6px;border-radius:3px;display:inline-block}
+.agline{font-size:13px;color:var(--t2);font-family:var(--mono);overflow-wrap:anywhere}

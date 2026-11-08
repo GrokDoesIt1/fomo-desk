@@ -541,14 +541,27 @@
       chartFlat = !(hi - lo > 1e-9);
     }
     const chartEmpty = !S.chart || pts.length < 2;
-    $('#view').innerHTML = navbar('Desk') + `
-      <div class="hero">
-        <div class="topline"><span class="pill paper">PAPER</span><span class="live"><i class="pulse"></i> live</span></div>
-        <div class="balrow"><div class="bal" id="bal"></div></div>
-        <div class="today ${up ? 'up' : 'down'}">${pct(st.todayPct)}</div>
-      </div>
-      ${testBar()}
+    const chg = (st.balance || 0) - (st.startBalance || 0);
+    const openN = (S.positions || {}).open || 0;
+    const steps = ui.pipeline || [];
+    $('#view').innerHTML = `
+      <div class="gbhead"><button class="gbname" data-go="team"><span class="avatar">G</span>Grok Bot <i>›</i></button>
+        <span style="display:flex;align-items:center;gap:2px"><button class="icon" data-act="search" aria-label="Search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>
+        <button class="icon" data-act="bell" aria-label="Pushes"><svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0"/></svg>${st.unread > 0 ? '<span class="dot"></span>' : ''}</button>
+        <span class="livepill"><i class="pulse"></i> Live</span></span></div>
+      <div class="gbsub">paper trading · ${openN} open <i class="gdot"></i></div>
+      <div class="hero"><div class="balrow"><div class="bal" id="bal"></div></div>
+        <div class="gbchg ${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${usd(Math.abs(chg))} (${Math.abs(st.todayPct || 0).toFixed(2)}%)
+          <span class="multpill ${up ? '' : 'dn'}">${(st.multiplier || 1).toFixed(2)}×</span></div></div>
       <div id="pnlph"></div>
+      <div class="sec gbsec"><b>Agents</b><span class="gbrun">${st.running || 0} running</span></div>
+      <div class="agcar">${steps.map(p => `<button class="agcard ${p.active ? 'on' : ''}" data-act="togstep" data-step="${p.step}">
+        <div class="agtop"><span class="agico" style="background:${COLORS[p.agent] || '#333'}22;color:${COLORS[p.agent] || '#fff'}">${esc((SHORT[p.agent] || p.agent || '?').slice(0, 1))}</span>
+        <div><b>${esc(SHORT[p.agent] || p.agent)}</b><span class="agst"><i style="background:${p.paused ? 'var(--orange)' : (COLORS[p.agent] || 'var(--cyan)')}"></i>${esc(p.paused ? 'paused' : (p.active ? (p.doing || 'working') : 'watching'))}</span></div></div>
+        <div class="agline">${esc(p.line || p.detail || '—')}</div></button>`).join('')}</div>
+      <div class="sec gbsec"><b>Activity</b><button class="seeall" data-act="moreact">${S.homeActAll ? 'Less' : 'See all'}</button></div>
+      <div id="act5">${activityList(S.activity, S.homeActAll ? 40 : 4)}</div>
+      ${testBar()}
       <section class="blk">${shadowCard()}</section>
       <section class="blk"><div class="sec"><b>Pipeline</b><span class="t2">Look · Check · Score · Size · Guard</span></div>
       ${pipelineStrip(ui)}
@@ -564,9 +577,7 @@
       ${passLadder(ui)}
       ${stageTicker(ui)}
       ${reasonMini(ui.killReasons)}</details>
-      <div class="sec"><b>Activity</b>
-        <button class="btn" data-act="moreact" style="min-height:32px;font-size:12px;background:transparent;color:var(--blue)">${S.homeActAll ? 'Less' : 'All'}</button></div>
-      <div id="act5">${activityList(S.activity, S.homeActAll ? 40 : 6)}</div>`;
+`;
     if (window.PnlChart) {
       PnlChart.mount($('#pnlph'));
       const want = viewTest() === ((S.positions || {}).current || 1) ? PnlChart.state.range : 'T' + viewTest();
