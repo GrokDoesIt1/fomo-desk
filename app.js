@@ -553,7 +553,11 @@
       chartFlat = !(hi - lo > 1e-9);
     }
     const chartEmpty = !S.chart || pts.length < 2;
-    const chg = (st.balance || 0) - (st.startBalance || 0);
+    const tl = ((S.positions || {}).tests || []).slice(-1)[0];
+    const base0 = (tl && tl.start) || st.startBalance || 0;  // display: change since the current test started
+    const chg = (st.balance || 0) - base0;
+    const chgPct = base0 ? 100 * chg / base0 : 0;
+    const upT = chg >= 0;
     const openN = (S.positions || {}).open || 0;
     const steps = ui.pipeline || [];
     $('#view').innerHTML = `
@@ -563,8 +567,8 @@
         <span class="livepill"><i class="pulse"></i> Live</span></span></div>
       <div class="gbsub">paper trading · ${openN} open <i class="gdot"></i></div>
       <div class="hero"><div class="balrow"><div class="bal" id="bal"></div></div>
-        <div class="gbchg ${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${usd(Math.abs(chg))} (${Math.abs(st.todayPct || 0).toFixed(2)}%)
-          <span class="multpill ${up ? '' : 'dn'}">${(st.multiplier || 1).toFixed(2)}×</span></div></div>
+        <div class="gbchg ${upT ? 'up' : 'down'}">${upT ? '▲' : '▼'} ${usd(Math.abs(chg))} (${Math.abs(chgPct).toFixed(2)}%)
+          <span class="multpill ${upT ? '' : 'dn'}">${(base0 ? (st.balance || 0) / base0 : 1).toFixed(2)}×</span></div></div>
       <div id="pnlph"></div>
       <div class="sec gbsec"><b>Agents</b><span class="gbrun">${st.running || 0} running</span></div>
       <div class="agcar">${steps.map(p => `<button class="agcard ${p.active ? 'on' : ''}" data-act="togstep" data-step="${p.step}">
