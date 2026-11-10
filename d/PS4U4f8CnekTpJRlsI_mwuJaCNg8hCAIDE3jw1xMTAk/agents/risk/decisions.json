@@ -1,1 +1,1 @@
-{"agent":"risk","rows":[],"paused":false}
+{"agent":"risk","rows":[{"ts":"2026-11-10T04:11:38.501059Z","mint":"2ZLU8yV2mgG9M3PFNDskTeJRcfWYFQ86Byhmk3Jppump","name":"Habibi Cat","symbol":"HABIBI","label":"HABIBI","coin_url":"https://fomo.family/coin?address=2ZLU8yV2mgG9M3PFNDskTeJRcfWYFQ86Byhmk3Jppump&chainId=1399811149&source=share_link","verdict":"closed","reason":"trail \u00b7 $-3.35"}],"paused":false}
