@@ -9,15 +9,15 @@
   const sMoney = v => v == null ? '—' : (v >= 0 ? '+' : '') + money(v);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const toS = t => Math.floor((typeof t === 'number' ? t * 1000 : Date.parse(t)) / 1000);
-  const P = { el: null, chart: null, series: null, marks: [], data: [], base: 200, range: '24H', sig: '', onRange: null };
+  const P = { el: null, chart: null, series: null, marks: [], data: [], base: 200, range: 'LIVE', sig: '', onRange: null };
 
   function build() {
     const el = document.createElement('div');
     el.className = 'pnlbox'; el.id = 'pnlbox';
-    el.innerHTML = `<div class="pnlhead"><b>P&amp;L</b><span class="pnlnow" id="pnlnow">—</span>
-        <div class="pnlranges">${['1H', '6H', '24H', 'ALL'].map(r => `<button data-pr="${r}" class="${r === P.range ? 'on' : ''}">${r === 'ALL' ? 'All' : r}</button>`).join('')}</div></div>
+    el.innerHTML = `<div class="pnlhead"><b>P&amp;L</b><span class="pnlnow" id="pnlnow">—</span></div>
       <div class="pnlwrap"><div class="pnlchart" id="pnlchart"></div><div class="pnltip" id="pnltip" hidden></div>
         <button class="pnlreset" id="pnlreset">Fit</button></div>
+      <div class="pnlranges">${['LIVE', '1H', '4H', '1D', '1W', 'ALL'].map(r => `<button data-pr="${r}" class="${r === P.range ? 'on' : ''}">${r === 'LIVE' ? '<i class="ldot"></i>' : ''}${r}</button>`).join('')}</div>
       <div class="pnlhint">Drag to scroll · pinch to zoom · hold for details · tap ▲▼ for the trade</div>
       <div class="pnltrade" id="pnltrade" hidden></div>`;
     el.addEventListener('click', e => {
@@ -114,7 +114,8 @@
       const buy = m.side === 'buy' || m.kind === 'bought';
       const win = (m.pnl != null ? m.pnl : (m.kind === 'gain' ? 1 : -1)) >= 0;
       return { time: snap(m._s), position: buy ? 'belowBar' : 'aboveBar', shape: buy ? 'arrowUp' : 'arrowDown',
-               color: buy ? '#00d35a' : (win ? '#00d35a' : '#ff453a'), size: 1 };
+               color: buy ? '#38d6f5' : (win ? '#16e07a' : '#ff4d5e'), size: 1,
+               text: buy ? `${m.label || ''} bought ${m.size != null ? '$' + (+m.size).toFixed(2) : ''}` : `${m.label || ''} ${m.exit === 'stop' ? 'stop ' : ''}${m.text || ''}` };
     }).sort((a, b) => a.time - b.time);
     P.series.setMarkers(mk);
     if (P.fit || !range) {

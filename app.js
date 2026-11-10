@@ -382,6 +382,18 @@
       : `Test ${v} (archived) · $${(t.start || 0).toFixed(0)} → <b class="${(t.pnl || 0) >= 0 ? 'up' : 'down'}">$${(t.end || 0).toFixed(2)}</b> · ${sMoney(t.pnl)} · ${t.wins || 0}W/${t.losses || 0}L`;
     return `<div class="testbar"><div class="statscopes">${chips}</div><div class="testinfo">${info}</div></div>`;
   }
+  function mascot(a) {
+    // simple inline mascot avatars (no external assets): body blob + eyes + per-agent accessory
+    const M = { scanner: ['#38d6f5', '<circle cx="24" cy="24" r="9" fill="none" stroke="#000" stroke-width="2.5" opacity=".55"/><path d="M24 24L31 17" stroke="#000" stroke-width="2.5" stroke-linecap="round" opacity=".55"/>'],
+      auditor: ['#ffd60a', '<path d="M16 15h16v9c0 6-8 10-8 10s-8-4-8-10z" fill="none" stroke="#000" stroke-width="2.5" opacity=".55"/>'],
+      analyst: ['#ff4d5e', '<path d="M14 18c4-6 16-6 20 0" fill="none" stroke="#000" stroke-width="2.5" opacity=".55"/>'],
+      executor: ['#16e07a', '<path d="M26 12l-8 13h7l-3 11 9-14h-7z" fill="#000" opacity=".55"/>'],
+      risk: ['#b28dff', '<rect x="15" y="14" width="18" height="5" rx="2.5" fill="#000" opacity=".55"/>'] };
+    const [c, acc] = M[a] || ['#8e8e93', ''];
+    return `<span class="agico"><svg viewBox="0 0 48 48" width="40" height="40" aria-hidden="true"><rect width="48" height="48" rx="13" fill="${c}22"/>
+      <path d="M10 30c0-9 6-16 14-16s14 7 14 16v6H10z" fill="${c}"/>${acc}
+      <circle cx="19" cy="28" r="3" fill="#fff"/><circle cx="29" cy="28" r="3" fill="#fff"/><circle cx="19.6" cy="28.4" r="1.4" fill="#000"/><circle cx="29.6" cy="28.4" r="1.4" fill="#000"/></svg></span>`;
+  }
   function rejectsCard() {
     const R = ((S.positions || {}).rejects || []).filter(r => r.strategy === 'baseline').slice(0, 12);
     const stg = { look: 'Look', check: 'Check', score: 'Score', size: 'Size', guard: 'Guard' };
@@ -556,7 +568,7 @@
       <div id="pnlph"></div>
       <div class="sec gbsec"><b>Agents</b><span class="gbrun">${st.running || 0} running</span></div>
       <div class="agcar">${steps.map(p => `<button class="agcard ${p.active ? 'on' : ''}" data-act="togstep" data-step="${p.step}">
-        <div class="agtop"><span class="agico" style="background:${COLORS[p.agent] || '#333'}22;color:${COLORS[p.agent] || '#fff'}">${esc((SHORT[p.agent] || p.agent || '?').slice(0, 1))}</span>
+        <div class="agtop">${mascot(p.agent)}
         <div><b>${esc(SHORT[p.agent] || p.agent)}</b><span class="agst"><i style="background:${p.paused ? 'var(--orange)' : (COLORS[p.agent] || 'var(--cyan)')}"></i>${esc(p.paused ? 'paused' : (p.active ? (p.doing || 'working') : 'watching'))}</span></div></div>
         <div class="agline">${esc(p.line || p.detail || '—')}</div></button>`).join('')}</div>
       <div class="sec gbsec"><b>Activity</b><button class="seeall" data-act="moreact">${S.homeActAll ? 'Less' : 'See all'}</button></div>

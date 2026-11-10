@@ -439,3 +439,11 @@ details.tech[open] summary::after{content:"▴"}
 .agst{font-size:13px;color:var(--t2);display:flex;align-items:center;gap:5px}
 .agst i{width:6px;height:6px;border-radius:3px;display:inline-block}
 .agline{font-size:13px;color:var(--t2);font-family:var(--mono);overflow-wrap:anywhere}
+/* v3: reference ranges + mascots */
+.pnlranges{display:flex;justify-content:space-between;gap:4px;margin:10px 0 2px;padding:0 2px}
+.pnlranges button{min-width:44px;min-height:40px;padding:0 10px;border-radius:20px;font-weight:700;font-size:14px;color:var(--green);background:transparent;display:inline-flex;align-items:center;gap:6px}
+.pnlranges button.on{background:var(--green);color:#000}
+.pnlranges .ldot{width:7px;height:7px;border-radius:4px;background:currentColor;display:inline-block}
+.agico{width:40px;height:40px;border-radius:13px;overflow:hidden;background:none!important;display:block}
+.pnlbox{background:transparent!important;border:0!important;padding:0!important}
+.pnlbox{margin:6px -8px 12px!important}
