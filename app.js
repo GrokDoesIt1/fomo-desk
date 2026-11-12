@@ -42,7 +42,7 @@
       else if (path.startsWith('/search')) url = base + 'search.json';
       else if (path.startsWith('/agents/')) url = base + 'agents/' + path.split('/')[2] + '/decisions.json';
       else url = base + path.slice(1).replace(/\?.*$/, '') + '.json';
-      url += '?_=' + Math.floor(Date.now() / 15000);  // bust the Pages CDN (max-age=600) so data is never stale
+      url += '?_=' + Math.floor(Date.now() / 5000);  // bust the Pages CDN (max-age=600); poll bucket matches 5s refresh
     }
     const r = await fetch(url, opt);
     if (r.status === 404 && PLAN === 'B' && /\/(coin|audit)\//.test(path)) return null;
@@ -350,15 +350,101 @@
     if (!iso) return '—';
     try { return new Date(iso).toLocaleTimeString('en-US', { timeZone: 'America/Toronto', hour: 'numeric', minute: '2-digit' }) + ' ET'; } catch (e) { return '—'; }
   }
-  function liveHeld(r) {
-    if (!r.opened_at) return heldTxt(r.held_s);
-    const s = Math.max(0, (Date.now() - Date.parse(r.opened_at)) / 1000);
-    const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), sec = Math.floor(s % 60);
-    return (h ? h + 'h ' : '') + m + 'm ' + String(sec).padStart(2, '0') + 's';
+  function openedMs(v) {
+    if (v == null || v === '') return null;
+    if (typeof v === 'number' && isFinite(v)) return v < 1e12 ? v * 1000 : v;
+    const s = String(v).trim();
+    if (/^\d+(\.\d+)?$/.test(s)) { const n = Number(s); return n < 1e12 ? n * 1000 : n; }
+    const p = Date.parse(s); return isFinite(p) ? p : null;
   }
-  setInterval(() => document.querySelectorAll('[data-held]').forEach(el => {
-    el.textContent = liveHeld({ opened_at: el.dataset.held });
-  }), 1000);
+  function inFor(v) {
+    const ms = openedMs(v);
+    if (ms == null) return '⏱ In for —';
+    let s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    if (h) return '⏱ In for ' + h + 'h ' + m + 'm ' + sec + 's';
+    if (m) return '⏱ In for ' + m + 'm ' + sec + 's';
+    return '⏱ In for ' + sec + 's';
+  }
+  function agoText(ms) {
+    if (ms == null) return 'updated —';
+    const s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
+    if (s < 2) return 'updated just now';
+    if (s < 60) return 'updated ' + s + 's ago';
+    if (s < 3600) return 'updated ' + Math.floor(s / 60) + 'm ago';
+    return 'updated ' + Math.floor(s / 3600) + 'h ago';
+  }
+  function liveHeld(r) {
+    if (r && r.opened_at) return inFor(r.opened_at);
+    return heldTxt(r && r.held_s);
+  }
+  function tickLiveClocks() {
+    document.querySelectorAll('[data-infor]').forEach(el => { el.textContent = inFor(el.dataset.infor); });
+    document.querySelectorAll('[data-held]').forEach(el => { el.textContent = inFor(el.dataset.held); });
+    document.querySelectorAll('[data-fresh-text]').forEach(el => { if (S.dataTs) el.textContent = agoText(S.dataTs); });
+  }
+  setInterval(tickLiveClocks, 1000);
+  const LIVE_TWEEN_MS = 1200;
+  let liveShown = {}, liveTargets = {}, liveTweenStart = 0, liveRaf = false;
+  function liveEase(t) { return 1 - Math.pow(1 - t, 3); }
+  function liveLerp(a, b, t) { return a + (b - a) * t; }
+  function applyLiveShown(id, s) {
+    const card = document.querySelector('.lcard canvas.lmini[data-mini="' + id + '"]');
+    const el = card && card.closest('.lcard');
+    if (!el) return;
+    const up = (s.pnl || 0) >= 0;
+    el.classList.toggle('win', up); el.classList.toggle('loss', !up);
+    const m = el.querySelector('.lmult');
+    if (m) { m.textContent = Number(s.mult || 1).toFixed(2) + '×'; m.className = 'lmult ' + (up ? 'up' : 'down'); }
+    const p = el.querySelector('.lpnl');
+    if (p) { p.className = 'lpnl ' + (up ? 'up' : 'down'); p.innerHTML = sMoney(s.pnl) + ' <small>' + (s.pct == null ? '' : pct(s.pct)) + '</small>'; }
+    const mc = el.querySelector('[data-nowmc]');
+    if (mc) mc.textContent = shortMc(s.mcap) || '—';
+  }
+  function tickLiveTweens(now) {
+    const t = reduce() ? 1 : Math.min(1, (now - liveTweenStart) / LIVE_TWEEN_MS);
+    const e = liveEase(t);
+    const rows = ((S.positions || {}).rows || []);
+    Object.keys(liveTargets).forEach(id => {
+      const to = liveTargets[id], from = liveShown[id] || to;
+      const s = {
+        pnl: liveLerp(from.pnl || 0, to.pnl || 0, e),
+        pct: liveLerp(from.pct || 0, to.pct || 0, e),
+        mult: liveLerp(from.mult || 1, to.mult || 1, e),
+        mcap: (from.mcap != null && to.mcap != null) ? liveLerp(from.mcap, to.mcap, e) : to.mcap,
+        last: (from.last != null && to.last != null) ? liveLerp(from.last, to.last, e) : to.last
+      };
+      liveShown[id] = s;
+      applyLiveShown(id, s);
+      const r = rows.find(x => String(x.id) === String(id));
+      if (r) {
+        const cv = document.querySelector('canvas.lmini[data-mini="' + id + '"]');
+        if (cv) {
+          const pts = (r.live_chart || []).map(p => ({ t: p.t, p: p.p }));
+          if (s.last != null) {
+            if (pts.length) pts[pts.length - 1] = { t: pts[pts.length - 1].t, p: s.last };
+            else pts.push({ t: Date.now() / 1000, p: s.last });
+          }
+          drawLiveMini(cv, Object.assign({}, r, { last_price: s.last, live_chart: pts }));
+        }
+      }
+    });
+    if (t < 1) requestAnimationFrame(tickLiveTweens);
+    else liveRaf = false;
+  }
+  function armLiveTweens() {
+    const rows = ((S.positions || {}).rows || []).filter(r => r.open);
+    const next = {};
+    rows.forEach(r => {
+      const last = r.last_price || r.entry_price;
+      const mult = r.multiplier || (r.entry_price ? last / r.entry_price : 1);
+      next[String(r.id)] = { pnl: r.pnl_usd || 0, pct: r.sincePct || 0, mult: mult || 1, mcap: r.current_mcap, last: last };
+    });
+    Object.keys(liveShown).forEach(id => { if (!next[id]) delete liveShown[id]; });
+    liveTargets = next;
+    liveTweenStart = performance.now();
+    if (!liveRaf) { liveRaf = true; requestAnimationFrame(tickLiveTweens); }
+  }
   function fomoUrl(r) {
     return r.coin_url && /^https:\/\/fomo\.family\//.test(r.coin_url) ? r.coin_url : null;  // built only in links.py
   }
@@ -471,12 +557,17 @@
     const vt = viewTest();
     const rows = (data.rows || []).filter(r => r.open && (r.test || 1) === vt);
     if (!rows.length) return '';
-    return `<div class="livestack"><div class="livehead"><i class="pulse"></i> LIVE OPEN</div>${rows.map(liveTradeCard).join('')}</div>`;
+    return `<div class="livestack"><div class="livehead"><i class="pulse"></i> LIVE OPEN <span class="fresh" id="livefresh"><i class="pulse"></i><span data-fresh-text>${agoText(S.dataTs)}</span></span></div>${rows.map(liveTradeCard).join('')}</div>`;
   }
   function liveTradeCard(r) {
-    const up = (r.pnl_usd || 0) >= 0;
-    const last = r.last_price || r.entry_price;
-    const mult = r.multiplier || (r.entry_price ? last / r.entry_price : 1);
+    const last0 = r.last_price || r.entry_price;
+    const disp = liveShown[String(r.id)];
+    const pnl = disp && disp.pnl != null ? disp.pnl : r.pnl_usd;
+    const since = disp && disp.pct != null ? disp.pct : r.sincePct;
+    const last = disp && disp.last != null ? disp.last : last0;
+    const mult = disp && disp.mult != null ? disp.mult : (r.multiplier || (r.entry_price ? last0 / r.entry_price : 1));
+    const mcap = disp && disp.mcap != null ? disp.mcap : r.current_mcap;
+    const up = (pnl || 0) >= 0;
     const trail = r.trail_active
       ? `TRAILING ${r.trail_pct}% off peak`
       : `STOP -${r.stop_pct || 10}% · trail arms at +${r.trail_start_pct || 20}%`;
@@ -484,13 +575,13 @@
     const flash = prev && prev.pnl !== r.pnl_usd ? ((r.pnl_usd || 0) >= (prev.pnl || 0) ? 'flash-up' : 'flash-dn') : '';
     return `<div class="lcard ${up ? 'win' : 'loss'} ${flash}" data-open="coin" data-mint="${esc(r.mint)}" role="button" tabindex="0">
       <div class="lcard-top">${coinIcon(r)}
-        <div class="lid"><b>${esc(r.symbol || r.label || 'coin')}</b><span>held ${liveHeld(r)}</span></div>
+        <div class="lid"><b>${esc(r.symbol || r.label || 'coin')}</b><span data-infor="${esc(r.opened_at || '')}">${inFor(r.opened_at)}</span></div>
         <div class="lmult ${up ? 'up' : 'down'}">${Number(mult).toFixed(2)}×</div>
       </div>
-      <div class="lpnl ${up ? 'up' : 'down'}">${sMoney(r.pnl_usd)} <small>${r.sincePct == null ? '' : pct(r.sincePct)}</small></div>
+      <div class="lpnl ${up ? 'up' : 'down'}">${sMoney(pnl)} <small>${since == null ? '' : pct(since)}</small></div>
       <canvas class="lmini" data-mini="${r.id}" width="600" height="160"></canvas>
       <div class="lmeta">
-        <span>Now <b>${esc(r.current_mcap_label || shortMc(r.current_mcap) || '—')}</b></span>
+        <span>Now <b data-nowmc>${esc(shortMc(mcap) || r.current_mcap_label || '—')}</b></span>
         <span>In at <b>${esc(r.entry_mcap_label || shortMc(r.entry_mcap) || '—')}</b></span>
         <span>Size <b>${money(r.size_usd)}</b></span>
         <span class="ltrail">${esc(trail)}</span>
@@ -722,6 +813,9 @@
       S.prevStats[k] = text;
     });
     const cv = $('#line'); if (cv && S.chart) { Charts.line(cv, S.chart, S.prevPts); Charts.interact(cv, S.chart, m => m && m.mint && openCoin(m.mint)); S.prevPts = (S.chart.points || []).length; }
+    paintLiveMinis();
+    armLiveTweens();
+    tickLiveClocks();
   }
 
   function filteredCoins() {
@@ -928,6 +1022,14 @@
       }
       const r = await Promise.all(jobs);
       S.state = r[0]; S.chart = r[1]; S.activity = r[2]; S.positions = r[3] || { rows: [] }; S.coins = r[4] || { rows: [] };
+      const gat = openedMs((S.positions || {}).generatedAt) || openedMs((S.state || {}).generatedAt);
+      if (gat && gat !== S.dataTs) {
+        S.dataTs = gat;
+        requestAnimationFrame(() => {
+          const el = document.getElementById('livefresh');
+          if (el) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+        });
+      } else if (gat) S.dataTs = gat;
       S.bought = boughtSet(); tradeFlash();
       if (S.tab === 'team') {
         S.account = r[5];

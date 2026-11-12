@@ -14,7 +14,7 @@
 <script>
 /* One-time reload when trencher-build changes. Keeps #d=/#t= and desk_* storage. */
 (function () {
-  var BUILD = "trench20k2";
+  var BUILD = "trenchlive1";
   var META = "trencher_build";
   var ONCE = "trencher_bv_once";
   try {
@@ -136,6 +136,9 @@ a{color:var(--cyan);text-decoration:none}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:70;overflow:hidden}
 .bit{position:absolute;top:-10px;width:8px;height:12px;border-radius:2px;animation:fall 1.2s linear forwards}
 @keyframes fall{to{transform:translateY(110vh) rotate(360deg);opacity:0}}
+
+.fresh{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--t2);letter-spacing:.03em;font-variant-numeric:tabular-nums}
+.fresh.bump .pulse{animation:ping .9s ease-out}
 @media (prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -159,6 +162,7 @@ a{color:var(--cyan);text-decoration:none}
       <span>Deposited <b id="deposited">—</b></span>
       <span><b id="opens">0</b> open</span>
       <span><b id="trades">0</b> trades</span>
+      <span class="fresh" id="freshwrap"><i class="pulse"></i><b id="fresh">updated —</b></span>
     </div>
   </div>
 </header>
@@ -199,12 +203,100 @@ a{color:var(--cyan);text-decoration:none}
     return r.json();
   }
 
-  function held(s){
-    s = Math.max(0, s||0);
-    if (s < 60) return s + 's';
-    if (s < 3600) return Math.floor(s/60) + 'm ' + (s%60) + 's';
-    return Math.floor(s/3600) + 'h ' + Math.floor((s%3600)/60) + 'm';
+  function openedMs(v){
+    if (v==null || v==='') return null;
+    if (typeof v === 'number' && isFinite(v)) return v < 1e12 ? v*1000 : v;
+    const s=String(v).trim();
+    if (/^\d+(\.\d+)?$/.test(s)){ const n=Number(s); return n < 1e12 ? n*1000 : n; }
+    const p=Date.parse(s); return isFinite(p) ? p : null;
   }
+  function inFor(v){
+    const ms=openedMs(v);
+    if (ms==null) return '⏱ In for —';
+    let s=Math.max(0, Math.floor((Date.now()-ms)/1000));
+    const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60;
+    if (h) return '⏱ In for '+h+'h '+m+'m '+sec+'s';
+    if (m) return '⏱ In for '+m+'m '+sec+'s';
+    return '⏱ In for '+sec+'s';
+  }
+  function agoText(ms){
+    if (ms==null) return 'updated —';
+    const s=Math.max(0, Math.floor((Date.now()-ms)/1000));
+    if (s<2) return 'updated just now';
+    if (s<60) return 'updated '+s+'s ago';
+    if (s<3600) return 'updated '+Math.floor(s/60)+'m ago';
+    return 'updated '+Math.floor(s/3600)+'h ago';
+  }
+  function fmtMcap(v){
+    if (v==null || !isFinite(v) || v<=0) return '—';
+    if (v>=1e6){ const s='$'+(v/1e6).toFixed(1)+'M'; return s.replace('.0M','M'); }
+    if (v>=1e4) return '$'+Math.round(v/1e3)+'K';
+    if (v>=1e3) return '$'+(v/1e3).toFixed(1)+'K';
+    return '$'+Math.round(v);
+  }
+  function tickClocks(){
+    document.querySelectorAll('[data-infor]').forEach(el=>{ el.textContent=inFor(el.dataset.infor); });
+    const el=$('#fresh'); if (el) el.textContent=agoText(dataTs);
+  }
+  const TWEEN_MS=1200;
+  let lastData=null, shown={}, targets={}, tweenStart=0, dataTs=null, rafOn=false;
+  function ease(t){ return 1-Math.pow(1-t,3); }
+  function lerp(a,b,t){ return a+(b-a)*t; }
+  function applyShown(id,s){
+    const card=document.querySelector('.lcard[data-oid="'+id+'"]');
+    if (!card) return;
+    const up=(s.pnl||0)>=0;
+    card.classList.toggle('win',up); card.classList.toggle('loss',!up);
+    const m=card.querySelector('.lmult');
+    if (m){ m.textContent=Number(s.mult||1).toFixed(2)+'×'; m.className='lmult '+(up?'up':'down'); }
+    const p=card.querySelector('.lpnl');
+    if (p){ p.className='lpnl '+(up?'up':'down'); p.innerHTML=money(s.pnl,true)+' <small>'+pct(s.pnlPct)+'</small>'; }
+    const mc=card.querySelector('[data-nowmc]');
+    if (mc) mc.textContent=fmtMcap(s.mcap);
+  }
+  function chartFor(o,last){
+    const pts=(o.liveChart||[]).map(p=>({t:p.t,p:p.p}));
+    if (last!=null){
+      if (pts.length) pts[pts.length-1]={t:pts[pts.length-1].t, p:last};
+      else pts.push({t:Date.now()/1000, p:last});
+    }
+    return Object.assign({}, o, {last: last!=null?last:o.last, liveChart:pts});
+  }
+  function tickTweens(now){
+    const t=reduce()?1:Math.min(1,(now-tweenStart)/TWEEN_MS);
+    const e=ease(t);
+    Object.keys(targets).forEach(id=>{
+      const to=targets[id], from=shown[id]||to;
+      const s={
+        pnl:lerp(from.pnl||0,to.pnl||0,e),
+        pnlPct:lerp(from.pnlPct||0,to.pnlPct||0,e),
+        mult:lerp(from.mult||1,to.mult||1,e),
+        mcap:(from.mcap!=null && to.mcap!=null)?lerp(from.mcap,to.mcap,e):to.mcap,
+        last:(from.last!=null && to.last!=null)?lerp(from.last,to.last,e):to.last
+      };
+      shown[id]=s;
+      applyShown(id,s);
+      const o=(lastData && lastData.open||[]).find(x=>String(x.id)===String(id));
+      if (o){
+        const cv=document.querySelector('canvas.lmini[data-mini="'+id+'"]');
+        if (cv) drawMini(cv, chartFor(o,s.last));
+      }
+    });
+    if (t<1) requestAnimationFrame(tickTweens);
+    else rafOn=false;
+  }
+  function armTweens(rows){
+    const next={};
+    (rows||[]).forEach(o=>{
+      next[String(o.id)]={pnl:o.pnl||0,pnlPct:o.pnlPct||0,mult:o.multiplier||1,mcap:o.currentMcap,last:o.last};
+    });
+    Object.keys(shown).forEach(id=>{ if(!next[id]) delete shown[id]; });
+    targets=next;
+    tweenStart=performance.now();
+    if (!rafOn){ rafOn=true; requestAnimationFrame(tickTweens); }
+  }
+  function openSig(d){ return (d.open||[]).map(o=>o.id).join(','); }
+  function fillSig(d){ return (d.fills||[]).slice(0,8).map(f=>f.ts+':'+(f.side||'')+':'+(f.mint||'')).join('|'); }
   function ico(mint, name){
     const L = esc((name||'?').slice(0,1).toUpperCase());
     return `<span class="cico"><img src="https://dd.dexscreener.com/ds-data/tokens/solana/${esc(mint||'')}.png" alt="" onerror="this.style.display='none'"><i>${L}</i></span>`;
@@ -261,19 +353,24 @@ a{color:var(--cyan);text-decoration:none}
     const rows=d.open||[];
     if (!rows.length) return `<div class="sec"><b>LIVE open</b><span>none right now</span></div><div class="muted">Waiting for the next scalp.</div>`;
     return `<div class="sec"><b>LIVE open</b><span>${rows.length}</span></div>` + rows.map(o=>{
-      const up=(o.pnl||0)>=0;
+      const d0=shown[String(o.id)];
+      const pnl=d0&&d0.pnl!=null?d0.pnl:o.pnl;
+      const pnlPct=d0&&d0.pnlPct!=null?d0.pnlPct:o.pnlPct;
+      const mult=d0&&d0.mult!=null?d0.mult:(o.multiplier||1);
+      const mcap=d0&&d0.mcap!=null?d0.mcap:o.currentMcap;
+      const up=(pnl||0)>=0;
       const trail = o.tpTaken>=1 ? `STOP -${o.stopPct}% · TP1 taken · next +25%` : `STOP -${o.stopPct}% · TP +15% / +25%`;
       const href = o.link?`href="${esc(o.link)}"`:'';
       const tag = o.link ? 'a' : 'div';
       return `<${tag} class="lcard ${up?'win':'loss'}" ${href} ${o.link?'target="_blank" rel="noopener"':''} data-oid="${o.id}">
         <div class="ltop">${ico(o.mint,o.name)}
-          <div class="lid"><b>${esc(o.name)}</b><span>held ${held(o.heldS)}</span></div>
-          <div class="lmult ${up?'up':'down'}">${Number(o.multiplier||1).toFixed(2)}×</div>
+          <div class="lid"><b>${esc(o.name)}</b><span data-infor="${esc(o.openedAt||'')}">${inFor(o.openedAt)}</span></div>
+          <div class="lmult ${up?'up':'down'}">${Number(mult||1).toFixed(2)}×</div>
         </div>
-        <div class="lpnl ${up?'up':'down'}">${money(o.pnl,true)} <small>${pct(o.pnlPct)}</small></div>
+        <div class="lpnl ${up?'up':'down'}">${money(pnl,true)} <small>${pct(pnlPct)}</small></div>
         <canvas class="lmini" data-mini="${o.id}"></canvas>
         <div class="lmeta">
-          <span>Now <b>${esc(o.currentMcapLabel||'—')}</b></span>
+          <span>Now <b data-nowmc>${esc(fmtMcap(mcap)!=='—'?fmtMcap(mcap):(o.currentMcapLabel||'—'))}</b></span>
           <span>In at <b>${esc(o.entryMcapLabel||'—')}</b></span>
           <span>Size <b>${money(o.restUsd||o.sizeUsd)}</b></span>
           <span class="ltrail">${esc(trail)}</span>
@@ -336,6 +433,12 @@ a{color:var(--cyan);text-decoration:none}
     if (!reduce()) { el.style.transform='scale(1.04)'; setTimeout(()=>el.style.transform='',220); }
   }
 
+  function paintShell(d){
+    $('#app').innerHTML = `<div id="livewrap">${openCards(d)}</div>` +
+      `<div class="sec"><b>Balance</b><span>live equity</span></div><div class="chartbox"><canvas id="eq"></canvas></div>` +
+      `<div id="restblock">` + feed(d) + side(d) +
+      `<p class="muted">PAPER only · ${esc(d.note||'')} · updated ${esc(d.generatedAtLocal||'')}</p></div>`;
+  }
   function render(d){
     if (!d){ $('#need').hidden=false; $('#app').innerHTML=''; return; }
     $('#need').hidden=true;
@@ -350,15 +453,22 @@ a{color:var(--cyan);text-decoration:none}
     m.textContent=x.toFixed(2)+'×'; m.className='mult'+(x<1?' dn':'');
     $('#opens').textContent=d.openCount!=null?d.openCount:(d.open||[]).length;
     $('#trades').textContent=d.trades||0;
-    $('#app').innerHTML = openCards(d) +
-      `<div class="sec"><b>Balance</b><span>live equity</span></div><div class="chartbox"><canvas id="eq"></canvas></div>` +
-      feed(d) + side(d) +
-      `<p class="muted">PAPER only · ${esc(d.note||'')} · updated ${esc(d.generatedAtLocal||'')}</p>`;
-    (d.open||[]).forEach(o=>{
-      const cv=document.querySelector('canvas.lmini[data-mini="'+o.id+'"]');
-      if (cv) drawMini(cv,o);
-    });
+    const prevTs=dataTs;
+    dataTs=openedMs(d.generatedAt);
+    const wrap=$('#livewrap');
+    const rebuilt=!lastData || !wrap || openSig(d)!==openSig(lastData);
+    if (rebuilt) paintShell(d);
+    else if (fillSig(d)!==fillSig(lastData)){
+      const rest=$('#restblock');
+      if (rest) rest.innerHTML = feed(d)+side(d)+`<p class="muted">PAPER only · ${esc(d.note||'')} · updated ${esc(d.generatedAtLocal||'')}</p>`;
+    }
+    if (dataTs && dataTs!==prevTs){
+      const fw=$('#freshwrap'); if (fw){ fw.classList.remove('bump'); void fw.offsetWidth; fw.classList.add('bump'); }
+    }
+    lastData=d;
+    armTweens(d.open||[]);
     const eq=$('#eq'); if (eq) drawEquity(eq, d.equityChart, d.deposited||d.startStack||20000);
+    tickClocks();
     const ids=new Set((d.fills||[]).map(f=>f.ts+':'+(f.side||'')+':'+(f.mint||'')));
     if (!first){
       (d.fills||[]).slice(0,6).forEach(f=>{
@@ -383,6 +493,7 @@ a{color:var(--cyan);text-decoration:none}
   }
   refresh();
   setInterval(refresh, 5000);
+  setInterval(tickClocks, 1000);
 })();
 </script>
 </body>

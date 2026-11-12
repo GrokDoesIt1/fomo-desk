@@ -450,7 +450,9 @@ details.tech[open] summary::after{content:"▴"}
 
 /* --- Grok Terminal polish + comic pops (display only) --- */
 .livestack{margin:8px 16px 14px}
-.livehead{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.1em;color:rgba(235,235,245,.6);margin:0 0 10px}
+.livehead{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.1em;color:rgba(235,235,245,.6);margin:0 0 10px;flex-wrap:wrap}
+.fresh{display:inline-flex;align-items:center;gap:6px;margin-left:auto;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:none;font-variant-numeric:tabular-nums;color:rgba(235,235,245,.55)}
+.fresh.bump .pulse{animation:ping .9s ease-out}
 .lcard{background:var(--c1,#111);border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:14px;margin:0 0 12px;box-shadow:0 10px 40px rgba(0,0,0,.4)}
 .lcard.win{border-color:rgba(0,229,122,.28)}
 .lcard.loss{border-color:rgba(255,77,94,.28)}
