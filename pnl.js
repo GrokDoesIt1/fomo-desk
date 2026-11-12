@@ -46,7 +46,7 @@
       baseValue: { type: 'price', price: 0 },
       topLineColor: '#00d35a', topFillColor1: 'rgba(0,211,90,0.32)', topFillColor2: 'rgba(0,211,90,0.02)',
       bottomLineColor: '#ff453a', bottomFillColor1: 'rgba(255,69,58,0.02)', bottomFillColor2: 'rgba(255,69,58,0.32)',
-      lineWidth: 2, priceLineVisible: false, lastValueVisible: true,
+      lineWidth: 3, priceLineVisible: false, lastValueVisible: true,
     });
     s.createPriceLine({ price: 0, color: 'rgba(235,235,245,0.35)', lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
     P.chart = ch; P.series = s;
@@ -98,6 +98,8 @@
       const v = pts[pts.length - 1].value, pc = v / P.base * 100;
       now.className = 'pnlnow ' + (v >= 0 ? 'up' : 'down');
       now.textContent = `${sMoney(v)} · ${pc >= 0 ? '+' : ''}${pc.toFixed(2)}%`;
+      P.el.classList.toggle('pnl-up', v >= 0);
+      P.el.classList.toggle('pnl-dn', v < 0);
     }
     if (sig === P.sig) return;
     P.sig = sig;
@@ -105,7 +107,13 @@
     const atEnd = !range || range.to >= P.data.length - 2;
     P.data = pts;
     if (pts.length === 1) pts.unshift({ time: pts[0].time - 60, value: pts[0].value });
+    const first = !P.drawn;
     P.series.setData(pts);
+    const wrap = P.el.querySelector('#pnlchart');
+    if (first && wrap && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+      wrap.classList.remove('drawin'); void wrap.offsetWidth; wrap.classList.add('drawin');
+    }
+    P.drawn = true;
     const times = pts.map(p => p.time);
     const snap = s => { let lo = 0, hi = times.length - 1; if (!times.length) return s; if (s <= times[0]) return times[0];
       while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (times[mid] <= s) lo = mid; else hi = mid - 1; } return times[lo]; };

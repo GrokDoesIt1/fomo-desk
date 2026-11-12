@@ -461,13 +461,113 @@
         <div class="lnote">Suggest-only: the learner never changes settings by itself. 💡 lines are ideas for you to approve.</div>
       </div>`;
   }
+  
+  function coinIcon(r) {
+    const letter = esc((r.symbol || r.label || r.name || '?').slice(0, 1).toUpperCase());
+    return `<span class="cico"><img src="https://dd.dexscreener.com/ds-data/tokens/solana/${esc(r.mint || '')}.png" alt="" onerror="this.style.display='none'"><i>${letter}</i></span>`;
+  }
+  function liveOpenCards() {
+    const data = S.positions || { rows: [] };
+    const vt = viewTest();
+    const rows = (data.rows || []).filter(r => r.open && (r.test || 1) === vt);
+    if (!rows.length) return '';
+    return `<div class="livestack"><div class="livehead"><i class="pulse"></i> LIVE OPEN</div>${rows.map(liveTradeCard).join('')}</div>`;
+  }
+  function liveTradeCard(r) {
+    const up = (r.pnl_usd || 0) >= 0;
+    const last = r.last_price || r.entry_price;
+    const mult = r.multiplier || (r.entry_price ? last / r.entry_price : 1);
+    const trail = r.trail_active
+      ? `TRAILING ${r.trail_pct}% off peak`
+      : `STOP -${r.stop_pct || 10}% · trail arms at +${r.trail_start_pct || 20}%`;
+    const prev = (S.prevLive || {})[r.id];
+    const flash = prev && prev.pnl !== r.pnl_usd ? ((r.pnl_usd || 0) >= (prev.pnl || 0) ? 'flash-up' : 'flash-dn') : '';
+    return `<div class="lcard ${up ? 'win' : 'loss'} ${flash}" data-open="coin" data-mint="${esc(r.mint)}" role="button" tabindex="0">
+      <div class="lcard-top">${coinIcon(r)}
+        <div class="lid"><b>${esc(r.symbol || r.label || 'coin')}</b><span>held ${liveHeld(r)}</span></div>
+        <div class="lmult ${up ? 'up' : 'down'}">${Number(mult).toFixed(2)}×</div>
+      </div>
+      <div class="lpnl ${up ? 'up' : 'down'}">${sMoney(r.pnl_usd)} <small>${r.sincePct == null ? '' : pct(r.sincePct)}</small></div>
+      <canvas class="lmini" data-mini="${r.id}" width="600" height="160"></canvas>
+      <div class="lmeta">
+        <span>Now <b>${esc(r.current_mcap_label || shortMc(r.current_mcap) || '—')}</b></span>
+        <span>In at <b>${esc(r.entry_mcap_label || shortMc(r.entry_mcap) || '—')}</b></span>
+        <span>Size <b>${money(r.size_usd)}</b></span>
+        <span class="ltrail">${esc(trail)}</span>
+      </div>
+    </div>`;
+  }
+  function paintLiveMinis() {
+    const data = S.positions || { rows: [] };
+    (data.rows || []).forEach(r => {
+      const cv = document.querySelector('canvas.lmini[data-mini="' + r.id + '"]');
+      if (cv) drawLiveMini(cv, r);
+    });
+    const prev = {};
+    (data.rows || []).filter(r => r.open).forEach(r => { prev[r.id] = { pnl: r.pnl_usd }; });
+    S.prevLive = prev;
+  }
+  function drawLiveMini(cv, r) {
+    const pts = r.live_chart || [];
+    const w = cv.width, h = cv.height, ctx = cv.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, w, h);
+    const prices = pts.map(p => p.p).concat([r.entry_price, r.last_price, r.stop_price, r.trail_line].filter(Boolean));
+    if (!prices.length) return;
+    let lo = Math.min.apply(null, prices), hi = Math.max.apply(null, prices);
+    if (!(hi - lo)) { hi *= 1.01; lo *= 0.99; }
+    const pad = (hi - lo) * 0.12; lo -= pad; hi += pad;
+    const Y = p => h - 8 - (p - lo) / (hi - lo) * (h - 16);
+    const X = i => pts.length > 1 ? 8 + i / (pts.length - 1) * (w - 16) : w / 2;
+    const hline = (price, color, dash) => {
+      if (price == null) return;
+      ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash(dash || []);
+      const y = Y(price); ctx.moveTo(8, y); ctx.lineTo(w - 8, y); ctx.stroke(); ctx.setLineDash([]);
+    };
+    hline(r.entry_price, 'rgba(255,255,255,.45)', [6, 6]);
+    hline(r.stop_price, 'rgba(255,69,58,.75)', [4, 5]);
+    hline(r.trail_line, 'rgba(56,214,245,.75)', [4, 5]);
+    if (!pts.length) return;
+    const up = (r.pnl_usd || 0) >= 0, col = up ? '#00e57a' : '#ff4d5e';
+    ctx.beginPath();
+    pts.forEach((p, i) => { const x = X(i), y = Y(p.p); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.lineTo(X(pts.length - 1), h - 8); ctx.lineTo(X(0), h - 8); ctx.closePath();
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, up ? 'rgba(0,229,122,.28)' : 'rgba(255,77,94,.28)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fill();
+  }
+  function comicBurst(kind, text) {
+    if (reduce()) return;
+    let el = document.getElementById('comicpop');
+    if (!el) { el = document.createElement('div'); el.id = 'comicpop'; document.body.appendChild(el); }
+    el.className = 'comicpop show ' + kind; el.textContent = text;
+    clearTimeout(comicBurst.t); comicBurst.t = setTimeout(() => { el.className = 'comicpop'; }, 700);
+    if (kind === 'moon') sprayConfetti();
+  }
+  function sprayConfetti() {
+    if (reduce()) return;
+    let box = document.getElementById('confetti');
+    if (!box) { box = document.createElement('div'); box.id = 'confetti'; document.body.appendChild(box); }
+    const colors = ['#00e57a', '#ffd60a', '#38d6f5', '#ff4d5e', '#fff'];
+    for (let i = 0; i < 48; i++) {
+      const b = document.createElement('i'); b.className = 'cbit';
+      b.style.left = (Math.random() * 100) + '%';
+      b.style.background = colors[i % colors.length];
+      b.style.animationDelay = (Math.random() * 0.2) + 's';
+      box.appendChild(b);
+      setTimeout(() => b.remove(), 1400);
+    }
+  }
+
   function myTrades() {
     const data = S.positions || { rows: [] };
     const vt = viewTest(), live = vt === (data.current || 1);
     const rows = (data.rows || []).filter(r => (r.test || 1) === vt);
     const ts = (data.tests || []).find(x => x.test === vt) || {};
     const sm = live ? (data.summary || {}) : { open: 0, closed: ts.trades || 0, winRate: ts.trades ? 100 * ts.wins / ts.trades : null, realized: ts.pnl || 0, unrealized: 0 };
-    const open = rows.filter(r => r.open), closed = rows.filter(r => !r.open).slice(0, live ? 8 : 12);
+    const open = rows.filter(r => r.open), closed = rows.filter(r => !r.open).slice(0, live ? 8 : 12); const hideOpen = true;
     const tot = (sm.realized || 0) + (sm.unrealized || 0);
     const exitTxt = { stop: 'Stop', trail: 'Trailing', timeout: 'Time limit', target: 'Target' };
     const card = r => {
@@ -502,7 +602,7 @@
         <div><span>Win rate</span><b>${sm.winRate == null ? '—' : Math.round(sm.winRate) + '%'}</b></div>
         <div><span>Total P&amp;L</span><b class="${tot >= 0 ? 'up' : 'down'}">${sMoney(tot)}</b></div>
       </div>
-      ${open.length ? `<div class="myopen">${open.map(card).join('')}</div>` : '<div class="empty-msg soft">No open trades right now</div>'}
+      ${hideOpen ? '' : (open.length ? `<div class="myopen">${open.map(card).join('')}</div>` : '<div class="empty-msg soft">No open trades right now</div>')}
       ${closed.length ? `<div class="sec"><b>Closed</b><span class="t2">realized ${sMoney(sm.realized)}</span></div><div class="mylist">${closed.map(crow).join('')}</div>` : ''}
     </div>`;
   }
@@ -527,6 +627,9 @@
     void el.offsetWidth; el.classList.add('show');
     clearTimeout(flash.k); flash.k = setTimeout(() => el.classList.remove('show'), 3500);
     if (navigator.vibrate) try { navigator.vibrate(30); } catch (e) {}
+    if (/Bought/i.test(t)) comicBurst('pow', 'POW!');
+    else if (good && /Sold/i.test(t)) comicBurst('moon', 'MOON!');
+    else if (!good && /Sold/i.test(t)) comicBurst('rekt', 'REKT');
   }
 
   if (window.PnlChart) {
@@ -569,15 +672,16 @@
       <div class="hero"><div class="balrow"><div class="bal" id="bal"></div></div>
         <div class="gbchg ${upT ? 'up' : 'down'}">${upT ? '▲' : '▼'} ${usd(Math.abs(chg))} (${Math.abs(chgPct).toFixed(2)}%)
           <span class="multpill ${upT ? '' : 'dn'}">${(base0 ? (st.balance || 0) / base0 : 1).toFixed(2)}×</span></div></div>
+      ${liveOpenCards()}
+      <div class="sec gbsec"><b>Activity</b><button class="seeall" data-act="moreact">${S.homeActAll ? 'Less' : 'See all'}</button></div>
+      <div id="act5">${activityList(S.activity, S.homeActAll ? 40 : 4)}</div>
+      ${testBar()}
       <div id="pnlph"></div>
       <div class="sec gbsec"><b>Agents</b><span class="gbrun">${st.running || 0} running</span></div>
       <div class="agcar">${steps.map(p => `<button class="agcard ${p.active ? 'on' : ''}" data-act="togstep" data-step="${p.step}">
         <div class="agtop">${mascot(p.agent)}
         <div><b>${esc(SHORT[p.agent] || p.agent)}</b><span class="agst"><i style="background:${p.paused ? 'var(--orange)' : (COLORS[p.agent] || 'var(--cyan)')}"></i>${esc(p.paused ? 'paused' : (p.active ? (p.doing || 'working') : 'watching'))}</span></div></div>
         <div class="agline">${esc(p.line || p.detail || '—')}</div></button>`).join('')}</div>
-      <div class="sec gbsec"><b>Activity</b><button class="seeall" data-act="moreact">${S.homeActAll ? 'Less' : 'See all'}</button></div>
-      <div id="act5">${activityList(S.activity, S.homeActAll ? 40 : 4)}</div>
-      ${testBar()}
       <section class="blk">${shadowCard()}</section>
       <section class="blk"><div class="sec"><b>Pipeline</b><span class="t2">Look · Check · Score · Size · Guard</span></div>
       ${pipelineStrip(ui)}
@@ -952,6 +1056,6 @@
     return;
   }
   render(); refresh();
-  if (PLAN === 'A') { stream(); setInterval(refresh, 30000); } else setInterval(refresh, 15000);
+  if (PLAN === 'A') { stream(); setInterval(refresh, ((S.positions || {}).open ? 4000 : 15000)); } else setInterval(refresh, 5000);
   window.addEventListener('resize', () => { if (S.tab === 'home' && S.chart) { S.prevPts = 0; const cv = $('#line'); if (cv) Charts.line(cv, S.chart, 0); } });
 })();

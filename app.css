@@ -447,3 +447,51 @@ details.tech[open] summary::after{content:"▴"}
 .agico{width:40px;height:40px;border-radius:13px;overflow:hidden;background:none!important;display:block}
 .pnlbox{background:transparent!important;border:0!important;padding:0!important}
 .pnlbox{margin:6px -8px 12px!important}
+
+/* --- Grok Terminal polish + comic pops (display only) --- */
+.livestack{margin:8px 16px 14px}
+.livehead{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.1em;color:rgba(235,235,245,.6);margin:0 0 10px}
+.lcard{background:var(--c1,#111);border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:14px;margin:0 0 12px;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+.lcard.win{border-color:rgba(0,229,122,.28)}
+.lcard.loss{border-color:rgba(255,77,94,.28)}
+.lcard.flash-up{animation:wiggle .45s ease,glowg .6s ease}
+.lcard.flash-dn{animation:wiggle .45s ease,glowr .6s ease}
+@keyframes wiggle{0%,100%{transform:none}25%{transform:rotate(-.7deg) scale(1.01)}75%{transform:rotate(.7deg)}}
+@keyframes glowg{40%{box-shadow:0 0 24px rgba(0,229,122,.35)}}
+@keyframes glowr{40%{box-shadow:0 0 24px rgba(255,77,94,.35)}}
+.lcard-top{display:flex;align-items:center;gap:10px}
+.cico{position:relative;width:40px;height:40px;border-radius:14px;background:#1a1a1f;overflow:hidden;flex:0 0 40px;border:2px solid #000;box-shadow:0 0 0 2px #333}
+.cico img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+.cico i{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;font-size:18px}
+.lid{flex:1;min-width:0}.lid b{display:block;font-size:18px;letter-spacing:-.02em}.lid span{font-size:12px;color:var(--t2)}
+.lmult{font:800 28px/1 var(--disp,system-ui);font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+.lmult.up,.lpnl.up{color:#00e57a}.lmult.down,.lpnl.down{color:#ff4d5e}
+.lpnl{margin:8px 0 6px;font:800 28px/1 var(--disp,system-ui);font-variant-numeric:tabular-nums}
+.lpnl small{font-size:16px;font-weight:700;opacity:.85}
+.lmini{width:100%;height:86px;display:block;border-radius:12px;background:#0a0a0c}
+.lmeta{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-top:10px;font-size:12px;color:var(--t2)}
+.lmeta b{color:#fff;font-weight:700;font-variant-numeric:tabular-nums}
+.ltrail{grid-column:1/-1;color:#38d6f5;font-weight:700}
+.comicpop{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%) rotate(-8deg) scale(0);z-index:80;font:900 54px/1 "Arial Black",system-ui;padding:8px 18px;border:4px solid #fff;border-radius:8px;pointer-events:none;text-shadow:3px 3px 0 #000;letter-spacing:-1px;opacity:0}
+.comicpop.show{animation:pow .7s cubic-bezier(.2,1.6,.3,1) forwards}
+.comicpop.moon{background:#00e57a;color:#041}
+.comicpop.rekt{background:#ff4d5e;color:#fff}
+.comicpop.pow{background:#ffd60a;color:#111}
+@keyframes pow{0%{transform:translate(-50%,-50%) rotate(-12deg) scale(0);opacity:1}40%{transform:translate(-50%,-50%) rotate(-6deg) scale(1.15)}100%{transform:translate(-50%,-50%) rotate(-4deg) scale(1);opacity:0}}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:70;overflow:hidden}
+.cbit{position:absolute;top:-10px;width:8px;height:12px;border-radius:2px;animation:fall 1.2s linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(360deg);opacity:0}}
+.pnlbox{margin:10px 16px 18px;background:#0c0c0e;border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:12px 0 10px!important;overflow:hidden}
+.pnlbox.pnl-up{box-shadow:inset 0 0 80px rgba(0,229,122,.06)}
+.pnlbox.pnl-dn{box-shadow:inset 0 0 80px rgba(255,77,94,.06)}
+.pnlchart.drawin{animation:drawin .8s ease both}
+@keyframes drawin{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+.pnlhead b{letter-spacing:.08em;font-size:11px;text-transform:uppercase;color:rgba(235,235,245,.5)}
+.pnlnow{font-size:18px!important}
+.pnltip{border-radius:12px!important;padding:8px 12px!important;border:1.5px solid rgba(255,255,255,.15)!important}
+.multpill{border-radius:999px;padding:2px 8px;font-weight:800}
+.hero .bal{letter-spacing:-1.5px}
+@media (prefers-reduced-motion:reduce){.lcard.flash-up,.lcard.flash-dn,.comicpop.show,.cbit,.pnlchart.drawin{animation:none!important}}
+
+.pnlbox{background:#0c0c0e!important;border:1px solid rgba(255,255,255,.08)!important;padding:12px 0 10px!important;border-radius:22px;margin:10px 16px 18px!important}
+.pnlchart{height:180px}
