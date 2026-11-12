@@ -470,8 +470,6 @@ details.tech[open] summary::after{content:"▴"}
 .lmult.up,.lpnl.up{color:#00e57a}.lmult.down,.lpnl.down{color:#ff4d5e}
 .lpnl{margin:8px 0 6px;font:800 28px/1 var(--disp,system-ui);font-variant-numeric:tabular-nums}
 .lpnl small{font-size:16px;font-weight:700;opacity:.85}
-.lpx{margin:0 0 6px;font-size:13px;font-weight:700;color:rgba(235,235,245,.55);font-variant-numeric:tabular-nums}
-.lpx b{font-weight:800;color:#fff}
 .lmini{width:100%;height:86px;display:block;border-radius:12px;background:#0a0a0c}
 .lmeta{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-top:10px;font-size:12px;color:var(--t2)}
 .lmeta b{color:#fff;font-weight:700;font-variant-numeric:tabular-nums}
