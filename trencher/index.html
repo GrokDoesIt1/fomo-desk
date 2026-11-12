@@ -14,7 +14,7 @@
 <script>
 /* One-time reload when trencher-build changes. Keeps #d=/#t= and desk_* storage. */
 (function () {
-  var BUILD = "trenchlive1";
+  var BUILD = "trenchlive2";
   var META = "trencher_build";
   var ONCE = "trencher_bv_once";
   try {
@@ -92,6 +92,8 @@ a{color:var(--cyan);text-decoration:none}
 .lpnl{margin:8px 0 6px;font:800 28px/1 "SF Pro Display",system-ui;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
 .lpnl small{font-size:16px;font-weight:700;opacity:.85}
 .lpnl.up{color:var(--g)} .lpnl.down{color:var(--r)}
+.lpx{margin:0 0 6px;font-size:13px;font-weight:700;color:var(--t2);font-variant-numeric:tabular-nums}
+.lpx b{font-weight:800}
 .lmini{width:100%;height:86px;display:block;border-radius:12px;background:#0a0a0c}
 .lmeta{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-top:10px;font-size:12px;color:var(--t2)}
 .lmeta b{color:#fff;font-weight:700;font-variant-numeric:tabular-nums}
@@ -250,7 +252,9 @@ a{color:var(--cyan);text-decoration:none}
     const m=card.querySelector('.lmult');
     if (m){ m.textContent=Number(s.mult||1).toFixed(2)+'×'; m.className='lmult '+(up?'up':'down'); }
     const p=card.querySelector('.lpnl');
-    if (p){ p.className='lpnl '+(up?'up':'down'); p.innerHTML=money(s.pnl,true)+' <small>'+pct(s.pnlPct)+'</small>'; }
+    if (p){ p.className='lpnl '+(up?'up':'down'); p.textContent='net after costs '+money(s.pnl,true); }
+    const px=card.querySelector('.lpx');
+    if (px){ px.innerHTML='price <b>'+pct(s.pricePct)+'</b> · net <b class="'+(up?'up':'down')+'">'+pct(s.netPct)+'</b>'; }
     const mc=card.querySelector('[data-nowmc]');
     if (mc) mc.textContent=fmtMcap(s.mcap);
   }
@@ -270,6 +274,8 @@ a{color:var(--cyan);text-decoration:none}
       const s={
         pnl:lerp(from.pnl||0,to.pnl||0,e),
         pnlPct:lerp(from.pnlPct||0,to.pnlPct||0,e),
+        pricePct:lerp(from.pricePct||0,to.pricePct||0,e),
+        netPct:lerp(from.netPct||0,to.netPct||0,e),
         mult:lerp(from.mult||1,to.mult||1,e),
         mcap:(from.mcap!=null && to.mcap!=null)?lerp(from.mcap,to.mcap,e):to.mcap,
         last:(from.last!=null && to.last!=null)?lerp(from.last,to.last,e):to.last
@@ -288,7 +294,7 @@ a{color:var(--cyan);text-decoration:none}
   function armTweens(rows){
     const next={};
     (rows||[]).forEach(o=>{
-      next[String(o.id)]={pnl:o.pnl||0,pnlPct:o.pnlPct||0,mult:o.multiplier||1,mcap:o.currentMcap,last:o.last};
+      next[String(o.id)]={pnl:o.pnl||0,pnlPct:o.netPct!=null?o.netPct:o.pnlPct||0,pricePct:o.pricePct||0,netPct:o.netPct!=null?o.netPct:o.pnlPct||0,mult:o.multiplier||1,mcap:o.currentMcap,last:o.last};
     });
     Object.keys(shown).forEach(id=>{ if(!next[id]) delete shown[id]; });
     targets=next;
@@ -355,7 +361,8 @@ a{color:var(--cyan);text-decoration:none}
     return `<div class="sec"><b>LIVE open</b><span>${rows.length}</span></div>` + rows.map(o=>{
       const d0=shown[String(o.id)];
       const pnl=d0&&d0.pnl!=null?d0.pnl:o.pnl;
-      const pnlPct=d0&&d0.pnlPct!=null?d0.pnlPct:o.pnlPct;
+      const pricePct=d0&&d0.pricePct!=null?d0.pricePct:(o.pricePct!=null?o.pricePct:o.pnlPct);
+      const netPct=d0&&d0.netPct!=null?d0.netPct:(o.netPct!=null?o.netPct:o.pnlPct);
       const mult=d0&&d0.mult!=null?d0.mult:(o.multiplier||1);
       const mcap=d0&&d0.mcap!=null?d0.mcap:o.currentMcap;
       const up=(pnl||0)>=0;
@@ -367,7 +374,8 @@ a{color:var(--cyan);text-decoration:none}
           <div class="lid"><b>${esc(o.name)}</b><span data-infor="${esc(o.openedAt||'')}">${inFor(o.openedAt)}</span></div>
           <div class="lmult ${up?'up':'down'}">${Number(mult||1).toFixed(2)}×</div>
         </div>
-        <div class="lpnl ${up?'up':'down'}">${money(pnl,true)} <small>${pct(pnlPct)}</small></div>
+        <div class="lpnl ${up?'up':'down'}">net after costs ${money(pnl,true)}</div>
+        <div class="lpx">price <b>${pct(pricePct)}</b> · net <b class="${up?'up':'down'}">${pct(netPct)}</b></div>
         <canvas class="lmini" data-mini="${o.id}"></canvas>
         <div class="lmeta">
           <span>Now <b data-nowmc>${esc(fmtMcap(mcap)!=='—'?fmtMcap(mcap):(o.currentMcapLabel||'—'))}</b></span>

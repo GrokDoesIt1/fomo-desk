@@ -397,7 +397,9 @@
     const m = el.querySelector('.lmult');
     if (m) { m.textContent = Number(s.mult || 1).toFixed(2) + '×'; m.className = 'lmult ' + (up ? 'up' : 'down'); }
     const p = el.querySelector('.lpnl');
-    if (p) { p.className = 'lpnl ' + (up ? 'up' : 'down'); p.innerHTML = sMoney(s.pnl) + ' <small>' + (s.pct == null ? '' : pct(s.pct)) + '</small>'; }
+    if (p) { p.className = 'lpnl ' + (up ? 'up' : 'down'); p.textContent = 'net after costs ' + sMoney(s.pnl); }
+    const px = el.querySelector('.lpx');
+    if (px) { const nup = (s.pnl || 0) >= 0; px.innerHTML = 'price <b>' + pct(s.pricePct) + '</b> · net <b class="' + (nup ? 'up' : 'down') + '">' + pct(s.netPct) + '</b>'; }
     const mc = el.querySelector('[data-nowmc]');
     if (mc) mc.textContent = shortMc(s.mcap) || '—';
   }
@@ -410,6 +412,8 @@
       const s = {
         pnl: liveLerp(from.pnl || 0, to.pnl || 0, e),
         pct: liveLerp(from.pct || 0, to.pct || 0, e),
+        pricePct: liveLerp(from.pricePct || 0, to.pricePct || 0, e),
+        netPct: liveLerp(from.netPct || 0, to.netPct || 0, e),
         mult: liveLerp(from.mult || 1, to.mult || 1, e),
         mcap: (from.mcap != null && to.mcap != null) ? liveLerp(from.mcap, to.mcap, e) : to.mcap,
         last: (from.last != null && to.last != null) ? liveLerp(from.last, to.last, e) : to.last
@@ -438,7 +442,7 @@
     rows.forEach(r => {
       const last = r.last_price || r.entry_price;
       const mult = r.multiplier || (r.entry_price ? last / r.entry_price : 1);
-      next[String(r.id)] = { pnl: r.pnl_usd || 0, pct: r.sincePct || 0, mult: mult || 1, mcap: r.current_mcap, last: last };
+      next[String(r.id)] = { pnl: r.pnl_usd || 0, pct: r.net_pct != null ? r.net_pct : r.sincePct || 0, pricePct: r.price_pct != null ? r.price_pct : r.sincePct || 0, netPct: r.net_pct != null ? r.net_pct : r.sincePct || 0, mult: mult || 1, mcap: r.current_mcap, last: last };
     });
     Object.keys(liveShown).forEach(id => { if (!next[id]) delete liveShown[id]; });
     liveTargets = next;
@@ -578,7 +582,8 @@
         <div class="lid"><b>${esc(r.symbol || r.label || 'coin')}</b><span data-infor="${esc(r.opened_at || '')}">${inFor(r.opened_at)}</span></div>
         <div class="lmult ${up ? 'up' : 'down'}">${Number(mult).toFixed(2)}×</div>
       </div>
-      <div class="lpnl ${up ? 'up' : 'down'}">${sMoney(pnl)} <small>${since == null ? '' : pct(since)}</small></div>
+      <div class="lpnl ${up ? 'up' : 'down'}">net after costs ${sMoney(pnl)}</div>
+      <div class="lpx">price <b>${pct(disp && disp.pricePct != null ? disp.pricePct : r.price_pct != null ? r.price_pct : since)}</b> · net <b class="${up ? 'up' : 'down'}">${pct(disp && disp.netPct != null ? disp.netPct : r.net_pct != null ? r.net_pct : since)}</b></div>
       <canvas class="lmini" data-mini="${r.id}" width="600" height="160"></canvas>
       <div class="lmeta">
         <span>Now <b data-nowmc>${esc(shortMc(mcap) || r.current_mcap_label || '—')}</b></span>
