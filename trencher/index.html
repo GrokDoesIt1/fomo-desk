@@ -126,12 +126,14 @@ a{color:var(--cyan);text-decoration:none}
     </div>
   </div>
   <div class="hero-pnl">
-    <div class="k">Total PnL · after fees · net of restocks</div>
+    <div class="k">Total PnL · after fees · net of total deposited</div>
     <div id="total">—</div>
     <div class="subrow">
       <span>Today <b id="today">—</b></span>
       <span>Balance <b id="bal">—</b></span>
       <span class="mult" id="mult">—×</span>
+      <span>Restocks <b id="restocks">0</b></span>
+      <span>Deposited <b id="deposited">—</b></span>
       <span><b id="trades">0</b> trades</span>
     </div>
   </div>
@@ -315,7 +317,11 @@ a{color:var(--cyan);text-decoration:none}
     tickPnl($('#total'), d.totalPnl||0);
     const today=$('#today'); today.textContent=money(d.todayPnl,true); today.style.color=(d.todayPnl||0)>=0?'var(--g)':'var(--r)';
     $('#bal').textContent=money(d.balance);
-    const m=$('#mult'); const x=d.multiplier|| (d.startStack? d.balance/d.startStack : 1);
+    const dep=d.deposited||((d.startStack||0)+(d.restocks||0));
+    const rs=d.restockCount||0;
+    $('#restocks').textContent=String(rs);
+    $('#deposited').textContent=money(dep);
+    const m=$('#mult'); const x=d.multiplier|| (dep? d.balance/dep : 1);
     m.textContent=x.toFixed(2)+'×'; m.className='mult'+(x<1?' dn':'');
     $('#trades').textContent=d.trades||0;
     $('#app').innerHTML = openCards(d) +
@@ -326,7 +332,7 @@ a{color:var(--cyan);text-decoration:none}
       const cv=document.querySelector('canvas.lmini[data-mini="'+o.id+'"]');
       if (cv) drawMini(cv,o);
     });
-    const eq=$('#eq'); if (eq) drawEquity(eq, d.equityChart, d.startStack||350);
+    const eq=$('#eq'); if (eq) drawEquity(eq, d.equityChart, d.deposited||d.startStack||20000);
     const ids=new Set((d.fills||[]).map(f=>f.ts+':'+(f.side||'')+':'+(f.mint||'')));
     if (!first){
       (d.fills||[]).slice(0,6).forEach(f=>{
