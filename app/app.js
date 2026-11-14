@@ -69,14 +69,15 @@
 
   let cache = {};
   async function refresh() {
-    const [state, versions, activity, positions, copy] = await Promise.all([
+    const [state, versions, activity, positions, copy, trialsBoard] = await Promise.all([
       loadJSON("state.json"),
       loadJSON("versions.json"),
       loadJSON("activity.json"),
       loadJSON("positions.json"),
-      loadJSON("copy-grok.json")
+      loadJSON("copy-grok.json"),
+      loadJSON("trials.json").catch(() => null)
     ]);
-    cache = { state, versions, activity, positions, copy };
+    cache = { state, versions, activity, positions, copy, trialsBoard };
     return cache;
   }
 
@@ -190,17 +191,11 @@
   }
 
   function renderTrials() {
-    const trials = (cache.copy && cache.copy.trials) || [];
-    view.innerHTML = `
-      <div class="h"><h1>Trials</h1><span>${trials.length}/10 · PAPER</span></div>
-      <div class="m" style="margin-bottom:10px">Separate $1,000 books. Verdict after 24h. Only a YES after the verdict adds someone to the main copy desk.</div>
-      <div class="m" style="margin-bottom:10px">${(cache.copy && (cache.copy.trial_trade_rules || (trials[0] && trials[0].trade_rules))) || "ENTRY: fresh buy, MC under $500k, ticket = 10% of the leader's buy (capped at cash, skip under $1). At ~2x take initials out and hold a moonbag with a 40% trail; full exit if the leader sells out; -25% hard stop. No mirroring of leader partials. PAPER ONLY."}</div>
-      <div class="list">${trials.map((t) => `
-        <div class="item">
-          <div class="t"><span>${t.id} · @${t.handle || "trader"}</span><span>${t.status || ""}</span></div>
-          <div class="m">${remain(t.ends_at || t.ends)} · cash ${usd(t.cash_usd ?? t.cash ?? 1000)} · $${Number(t.start_usd || (cache.copy && cache.copy.trial_start_usd) || 1000).toLocaleString()} start · PAPER</div>
-        </div>`).join("") || "<div class='item'><div class='m'>No paper trials running.</div></div>"}
-      </div>`;
+    if (window.renderTrialsBoard && cache.trialsBoard) {
+      window.renderTrialsBoard(view, cache.trialsBoard, { standalone: false });
+      return;
+    }
+    view.innerHTML = `<div class="err">Trial books could not be loaded.</div>`;
   }
 
   const renders = { home: renderHome, main: renderMain, versions: renderVersions, copy: renderCopy, trials: renderTrials };
@@ -213,6 +208,7 @@
 
   function setTab(tab, push) {
     document.querySelectorAll(".tabbar button").forEach((b) => b.classList.toggle("on", b.dataset.tab === tab));
+    document.body.classList.toggle("tab-trials", tab === "trials");
     try { (renders[tab] || renderHome)(); } catch (e) { view.innerHTML = `<div class="err">Could not render ${tab}: ${e.message}</div>`; }
     if (push !== false) {
       const url = location.pathname + location.search + "#d=" + encodeURIComponent(KEY) + "&tab=" + tab;
