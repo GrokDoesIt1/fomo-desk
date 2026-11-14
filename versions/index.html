@@ -131,6 +131,10 @@ a{text-decoration:none}
 .trow .nm{font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .trow .why{font-size:11px;color:var(--t3);text-transform:capitalize}
 .empty{color:var(--t3);font-size:13px;padding:8px 0}
+.meta{font-size:11px;color:var(--t2);font-weight:600;white-space:normal;word-break:break-word;line-height:1.35;margin-top:2px}
+.eqsub{font-size:13px;font-weight:700;color:var(--t2);margin:-2px 0 8px;line-height:1.35}
+.basis{font-size:12px;color:var(--t2);margin:8px 0 0;line-height:1.4}
+.miss{font-size:11px;color:var(--t3);margin-top:2px}
 
 .copybox{background:var(--c1);border:1px solid var(--line);border-radius:20px;padding:12px 14px;margin:0 0 18px}
 .copybox pre{margin:10px 0 0;white-space:pre-wrap;word-break:break-word;font:12px/1.45 var(--text);
@@ -165,7 +169,7 @@ a{text-decoration:none}
 
 <script>
 (function () {
-  const BUILD = "versions1";
+  const BUILD = "versions2-moonshot";
   const h = new URLSearchParams(location.hash.slice(1));
   let DPATH = h.get("d") || localStorage.getItem("desk_d") || "";
   let TOKEN = h.get("t") || localStorage.getItem("desk_t") || "";
@@ -209,6 +213,15 @@ a{text-decoration:none}
     return "⏱ In for " + m + "m";
   }
   function wr(v) { return v == null ? "—" : Math.round(v) + "%"; }
+  function fmtMult(v) { return v == null ? "—" : (Number(v).toFixed(2) + "x"); }
+  function fmtMc(v) {
+    if (v == null || v === "") return "—";
+    const n = Number(v);
+    if (!isFinite(n)) return "—";
+    if (n >= 1e6) return "$" + (n/1e6).toFixed(2) + "M";
+    if (n >= 1e3) return "$" + (n/1e3).toFixed(0) + "k";
+    return "$" + Math.round(n);
+  }
   function cls(v) { return v > 0 ? "up" : v < 0 ? "down" : ""; }
 
   function spark(cv, pts, up) {
@@ -309,8 +322,9 @@ a{text-decoration:none}
     return v.opens.map(o => `
       <a class="opos" href="${esc(o.link || '#')}" target="_blank" rel="noopener">
         <div style="min-width:0;flex:1">
-          <div class="nm">${esc(o.ticker)}</div>
+          <div class="nm">${esc(o.ticker)}${o.best_mult ? ' · ' + fmtMult(o.best_mult) : ''}</div>
           <div class="held" data-held="${o.opened_at || ''}"></div>
+          ${o.whales != null || o.narrative ? `<div class="meta">${o.whales != null ? esc(o.whales) + ' whales' : ''}${o.whales != null && o.narrative ? ' · ' : ''}${o.narrative ? esc(o.narrative) : ''}</div>` : ''}
         </div>
         <canvas class="mini" data-spark="${esc(JSON.stringify(o.spark || []))}" data-up="${o.pnl >= 0 ? 1 : 0}"></canvas>
         <div class="px ${cls(o.pnl)}">${usd(o.pnl, true)}<div class="held">${pct(o.pct)}</div></div>
@@ -321,7 +335,10 @@ a{text-decoration:none}
     if (!v.recent || !v.recent.length) return '<div class="empty">No closed trades yet</div>';
     return v.recent.map(r => `
       <div class="trow">
-        <div class="nm">${esc(r.ticker)} <span class="why">${esc((r.reason || '').replace('_', ' '))}</span></div>
+        <div class="nm">${esc(r.ticker)} <span class="why">${esc((r.reason || '').replace('_', ' '))}${r.best_mult ? ' · ' + fmtMult(r.best_mult) : ''}</span>
+          ${r.whales != null || r.narrative ? `<div class="meta">${r.whales != null ? esc(r.whales) + ' whales' : ''}${r.whales != null && r.narrative ? ' · ' : ''}${r.narrative ? esc(r.narrative) : ''}</div>` : ''}
+          ${r.peak_after_mcap ? `<div class="miss">after exit peaked at ${fmtMc(r.peak_after_mcap)}${r.entry_mcap ? ' (entered ' + fmtMc(r.entry_mcap) + ')' : ''}</div>` : ''}
+        </div>
         <div class="${cls(r.pnl)} num">${usd(r.pnl, true)}</div>
       </div>`).join("");
   }
@@ -333,10 +350,11 @@ a{text-decoration:none}
         <div class="live" style="font-size:10px">${v.telegram ? 'Telegram calls' : 'silent'}</div>
       </div>
       <div class="setting">${esc(v.short)}</div>
-      <div class="eq num ${cls(v.pnl)}" data-eq="${v.equity}">${usd(v.equity)}</div>
+      <div class="eq num ${cls(v.pnl)}" data-eq="${v.equity}">${v.basis === "tickets" ? usd(v.pnl, true) : usd(v.equity)}</div>
+      ${v.basis === "tickets" ? `<div class="eqsub">${v.pnl_multiple != null ? fmtMult(v.pnl_multiple) + ' money risked' : 'no bets yet'} · $${Number(v.money_risked || 0).toFixed(0)} risked${v.best_mult ? ' · best ' + fmtMult(v.best_mult) : ''}</div>` : ''}
       <div class="pnlrow">
         <span class="p ${cls(v.pnl)}">${usd(v.pnl, true)}</span>
-        <span class="${cls(v.pnl_pct)}">${pct(v.pnl_pct)}</span>
+        <span class="${cls(v.pnl_pct)}">${v.basis === "tickets" && v.pnl_multiple != null ? fmtMult(v.pnl_multiple) : pct(v.pnl_pct)}</span>
         <span class="t2">today <b class="${cls(v.today_pnl)}">${usd(v.today_pnl, true)}</b></span>
         ${v.unrealized ? `<span class="t2">open mark <b class="${cls(v.unrealized)}">${usd(v.unrealized, true)}</b></span>` : ''}
       </div>
@@ -349,6 +367,8 @@ a{text-decoration:none}
         <div class="tile"><div class="k">Fees + slip</div><div class="v">${usd(v.fees_slip)}</div></div>
         <div class="tile"><div class="k">Max drawdown</div><div class="v down">${usd(v.max_drawdown)}${v.max_drawdown_pct != null ? ' · ' + Math.abs(v.max_drawdown_pct).toFixed(1) + '%' : ''}</div></div>
       </div>
+      ${v.bankroll_note ? `<div class="basis">${esc(v.bankroll_note)}</div>` : ''}
+      ${v.missed_upside && v.missed_upside.length ? `<div class="ocap">Missed upside after exit</div>` + v.missed_upside.map(m => `<div class="trow"><div class="nm">${esc(m.ticker)} <span class="why">entered ${fmtMc(m.entry_mcap)} · later ${fmtMc(m.peak_after_mcap)}</span></div><div class="num">${m.multiple_after != null ? fmtMult(m.multiple_after) : ''}</div></div>`).join("") : ''}
       <div class="ocap">Equity curve</div>
       <canvas class="curve" data-curve="${esc(JSON.stringify(v.curve || []))}" data-up="${v.pnl >= 0 ? 1 : 0}"></canvas>
       <div class="ocap">Open now</div>
@@ -378,14 +398,14 @@ a{text-decoration:none}
           <span>${lead && lead.enough ? 'sample ready' : 'need 50 trades'}</span>
         </div>
       </section>
-      <div class="sec"><b>Leaderboard</b><span>same $350 start · fees in</span></div>
+      <div class="sec"><b>Leaderboard</b><span>A–F: $350 start · G: $5 tickets · fees in</span></div>
       <div class="board">${board(vs)}</div>
       <div class="sec"><b>Morning summary</b><button class="copybtn" id="copy" type="button">Copy</button></div>
       <div class="copybox"><div class="t2" style="font-size:12px">Paste this into ChatGPT or Grok Bot each morning.</div>
         <pre id="morning">${esc(morning)}</pre></div>
       <div class="sec"><b>Every version</b><span>scroll · one page</span></div>
       ${vs.map((v, i) => card(v, i)).join("")}
-      <div class="foot">PAPER only. Main is unchanged. These versions never send BUY/SELL calls except Main.
+      <div class="foot">PAPER only. Main is unchanged and is the only version that sends BUY/SELL calls. Moonshot uses its own $5 early-coin gate.
         Numbers refresh about every 5s. Need 50 closed trades before a result counts as proven.</div>
     `;
     app.querySelectorAll("canvas.curve").forEach(cv => spark(cv, JSON.parse(cv.dataset.curve || "[]"), cv.dataset.up === "1"));
