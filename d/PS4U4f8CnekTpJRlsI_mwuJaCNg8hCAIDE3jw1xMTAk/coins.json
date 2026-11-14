@@ -1,1 +1,1 @@
-{"rows":[],"nightStart":"2026-11-14T13:00:00Z"}
+{"rows":[{"mint":"2XyUvaWdt7SVpCnPR1poqKmVkYvo1QujA7qsEMwVpump","name":"wrappedape","symbol":"wApe","label":"wApe","coin_url":"https://fomo.family/coin?address=2XyUvaWdt7SVpCnPR1poqKmVkYvo1QujA7qsEMwVpump&chainId=1399811149&source=share_link","ts":"2026-11-14T13:02:39.776810Z","stage":"waiting","verdict":null,"tech":null,"plain":"Waiting on liquidity","tier":0,"tierKey":"wait","tierLabel":"Wait","fullPass":false,"failed":false}],"nightStart":"2026-11-14T13:00:00Z"}
