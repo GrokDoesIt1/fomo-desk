@@ -730,6 +730,20 @@
     document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('#pnlbox') && window.Charts) Charts.view.busy = Date.now() + 6000; }, true);
     document.addEventListener('touchmove', e => { if (e.target.closest && e.target.closest('#pnlbox') && window.Charts) Charts.view.busy = Date.now() + 4000; }, { capture: true, passive: true });
   }
+
+  function versionsHref() {
+    const q = DPATH ? ('#d=' + encodeURIComponent(DPATH)) : (TOKEN ? ('#t=' + encodeURIComponent(TOKEN)) : '');
+    return 'versions/' + q;
+  }
+  function versionsCard() {
+    return `<a class="vlink" href="${versionsHref()}">
+      <div class="vlink-k">Strategy versions</div>
+      <div class="vlink-t">6 paper bots · one page</div>
+      <div class="vlink-s">Leaderboard, live PnL, morning copy for ChatGPT</div>
+      <span class="vlink-go">Open ›</span>
+    </a>`;
+  }
+
   function renderHome() {
     const st = S.state;
     if (!st) { $('#view').innerHTML = navbar() + skel(56) + skel(22) + skel(160) + skel(80); return; }
@@ -766,6 +780,7 @@
         <div class="gbchg ${upT ? 'up' : 'down'}">${upT ? '▲' : '▼'} ${usd(Math.abs(chg))} (${Math.abs(chgPct).toFixed(2)}%)
           <span class="multpill ${upT ? '' : 'dn'}">${(base0 ? (st.balance || 0) / base0 : 1).toFixed(2)}×</span></div></div>
       ${liveOpenCards()}
+      ${versionsCard()}
       <div class="sec gbsec"><b>Activity</b><button class="seeall" data-act="moreact">${S.homeActAll ? 'Less' : 'See all'}</button></div>
       <div id="act5">${activityList(S.activity, S.homeActAll ? 40 : 4)}</div>
       ${testBar()}
