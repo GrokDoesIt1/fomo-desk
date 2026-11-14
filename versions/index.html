@@ -171,6 +171,7 @@ a{text-decoration:none}
       <div><b>Strategy versions</b><small id="ago">live paper board</small></div>
     </div>
     <div class="row" style="gap:6px">
+      <a class="back" id="copygrok" href="../copy-grok/" style="font-size:13px">Copy Grok</a>
       <span class="paper">PAPER</span>
       <span class="live"><i class="pulse"></i> Live</span>
     </div>
@@ -183,6 +184,8 @@ a{text-decoration:none}
 <script>
 (function () {
   const BUILD = "versions4-startnow";
+  (function(){ var el=document.getElementById('copygrok'); var m=/#d=([^&]+)/.exec(location.hash||''); if(el) el.href='../copy-grok/'+(m?('#d='+m[1]):''); var b=document.getElementById('back'); if(b&&m) b.href='../#d='+m[1]; })();
+
   const h = new URLSearchParams(location.hash.slice(1));
   let DPATH = h.get("d") || localStorage.getItem("desk_d") || "";
   let TOKEN = h.get("t") || localStorage.getItem("desk_t") || "";

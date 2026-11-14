@@ -743,6 +743,18 @@
       <span class="vlink-go">Open ›</span>
     </a>`;
   }
+  function copyGrokHref() {
+    const q = DPATH ? ('#d=' + encodeURIComponent(DPATH)) : '';
+    return 'copy-grok/' + q;
+  }
+  function copyGrokCard() {
+    return `<a class="vlink vlink-copy" href="${copyGrokHref()}">
+      <div class="vlink-k">Copy desk</div>
+      <div class="vlink-t">Grok Copy Bot</div>
+      <div class="vlink-s">Paper follow of public FOMO traders · live thinking bot</div>
+      <span class="vlink-go">Open ›</span>
+    </a>`;
+  }
 
   function renderHome() {
     const st = S.state;
@@ -781,6 +793,7 @@
           <span class="multpill ${upT ? '' : 'dn'}">${(base0 ? (st.balance || 0) / base0 : 1).toFixed(2)}×</span></div></div>
       ${liveOpenCards()}
       ${versionsCard()}
+      ${copyGrokCard()}
       <div class="sec gbsec"><b>Activity</b><button class="seeall" data-act="moreact">${S.homeActAll ? 'Less' : 'See all'}</button></div>
       <div id="act5">${activityList(S.activity, S.homeActAll ? 40 : 4)}</div>
       ${testBar()}

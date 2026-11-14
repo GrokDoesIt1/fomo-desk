@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Copy Grok">
+<meta name="theme-color" content="#f6f4ef">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Grok Copy Bot · PAPER</title>
+<link rel="icon" href="../apple-touch-icon.png">
+<style>
+:root{
+  --bg:#f6f4ef; --card:#fff; --ink:#111; --mute:#6b675f; --line:#ebe7df;
+  --gold:#d4a017; --gold2:#f0c14b; --up:#0e9a5a; --down:#e23b3b;
+  --soft:#f3f0ea; --ink2:#2b2a27;
+  --disp:-apple-system,"SF Pro Display",system-ui,sans-serif;
+  --text:-apple-system,"SF Pro Text",system-ui,sans-serif;
+  --safe-t:env(safe-area-inset-top); --safe-b:env(safe-area-inset-bottom);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 var(--text);
+  min-height:100%;overflow-x:hidden}
+body{padding-bottom:calc(28px + var(--safe-b))}
+button,a{font:inherit;color:inherit;text-decoration:none}
+button{background:none;border:0;padding:0;cursor:pointer}
+.num{font-variant-numeric:tabular-nums}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:80}
+
+.top{position:sticky;top:0;z-index:40;background:rgba(246,244,239,.92);
+  backdrop-filter:saturate(160%) blur(14px);-webkit-backdrop-filter:saturate(160%) blur(14px);
+  padding:calc(8px + var(--safe-t)) 14px 8px;display:flex;align-items:center;justify-content:space-between}
+.back{font-weight:800;font-size:22px;padding:4px 6px 4px 0;letter-spacing:-.04em}
+.icons{display:flex;gap:4px}
+.icon{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--ink)}
+.icon svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+.wrap{max-width:430px;margin:0 auto;padding:6px 16px 0}
+
+.head{display:flex;align-items:center;justify-content:space-between;margin:6px 0 10px}
+.orbwrap{position:relative;width:84px;height:84px}
+.orb{width:84px;height:84px;filter:drop-shadow(0 8px 16px rgba(0,0,0,.12))}
+.orb svg{width:100%;height:100%;overflow:visible}
+.orb .body{fill:#111}
+.orb .ring{fill:none;stroke:var(--gold);stroke-width:2.2;opacity:.85}
+.orb .eye{fill:#fff}
+.orb .pupil{fill:#111}
+.orb .mouth{fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round}
+.orb.idle{animation:bob 2.4s ease-in-out infinite}
+.orb.watching{animation:bob 2.4s ease-in-out infinite}
+.orb.watching .eyes{animation:look 3.6s ease-in-out infinite}
+.orb.checking .eyes{animation:think 1.2s ease-in-out infinite}
+.orb.excited{animation:pop 0.7s cubic-bezier(.2,1.4,.3,1)}
+.orb.excited .mouth{d:path("M30 52 Q40 60 50 52")}
+.orb.sad{animation:droop .6s ease both}
+.orb.sad .mouth{d:path("M32 56 Q40 50 48 56")}
+.orb.skip .eyes{animation:side 1.4s ease-in-out}
+.orb.exit .mouth{d:path("M32 54 Q40 52 48 54")}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@keyframes look{0%,40%,100%{transform:translate(0,0)}50%{transform:translate(4px,-1px)}70%{transform:translate(-3px,1px)}}
+@keyframes think{0%,100%{transform:translate(0,0)}50%{transform:translate(0,-3px)}}
+@keyframes pop{0%{transform:scale(.9) rotate(-6deg)}40%{transform:scale(1.12) rotate(4deg)}100%{transform:scale(1)}}
+@keyframes droop{to{transform:translateY(6px) rotate(-4deg)}}
+@keyframes side{0%,100%{transform:translate(0,0)}40%{transform:translate(6px,0)}}
+.livepill{display:inline-flex;align-items:center;gap:7px;background:#111;color:#fff;font-weight:800;
+  font-size:12px;letter-spacing:.04em;border-radius:999px;padding:8px 12px;box-shadow:0 8px 20px rgba(0,0,0,.12)}
+.livepill i{width:8px;height:8px;border-radius:50%;background:#16d07a;box-shadow:0 0 0 0 rgba(22,208,122,.5);animation:ping 1.8s ease-out infinite}
+@keyframes ping{70%{box-shadow:0 0 0 8px rgba(22,208,122,0)}}
+
+.name{font:800 26px/1.05 var(--disp);letter-spacing:-.03em;margin:2px 0 0}
+.handle{color:var(--mute);font-weight:700;margin:2px 0 10px}
+.counts{font-weight:700;font-size:14px;margin:0 0 8px}
+.counts b{font-weight:800}
+.meta{display:flex;flex-wrap:wrap;gap:8px 12px;color:var(--mute);font-size:13px;font-weight:650;margin:0 0 14px}
+.meta span{display:inline-flex;align-items:center;gap:5px}
+.meta svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round}
+
+.balrow{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.bal{font:800 56px/0.95 var(--disp);letter-spacing:-2px}
+.bal .cents{font-size:28px;color:#9a958c;letter-spacing:-1px}
+.bal.flash-up{animation:gflash .6s}
+.bal.flash-down{animation:rflash .6s}
+@keyframes gflash{0%{color:var(--up);text-shadow:0 0 18px rgba(14,154,90,.35)}100%{color:var(--ink);text-shadow:none}}
+@keyframes rflash{0%{color:var(--down);text-shadow:0 0 18px rgba(226,59,59,.3)}100%{color:var(--ink);text-shadow:none}}
+.chg{font-weight:800;font-size:15px;margin-top:4px}
+.chg.up{color:var(--up)} .chg.down{color:var(--down)}
+.tog{display:flex;background:var(--soft);border-radius:999px;padding:3px;flex-shrink:0}
+.tog button{padding:5px 9px;border-radius:999px;font-size:12px;font-weight:800;color:var(--mute)}
+.tog button.on{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.run{margin:8px 0 12px;font-weight:700;font-size:13px;color:var(--ink2);background:var(--soft);
+  border-radius:12px;padding:8px 10px}
+
+.chart{height:148px;margin:4px -4px 8px;position:relative}
+.chart canvas{width:100%;height:100%;display:block}
+.cash{display:flex;align-items:center;gap:10px;padding:10px 0 14px;border-top:1px solid var(--line);
+  font-weight:700;font-size:14px}
+.cash .dot{width:28px;height:28px;border-radius:50%;background:#111;color:#fff;display:grid;place-items:center;
+  font-weight:800;font-size:14px}
+
+.think{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px 12px 10px;margin:0 0 16px;
+  box-shadow:0 8px 24px rgba(0,0,0,.04)}
+.think .k{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);margin:0 0 8px}
+.bubble{position:relative;background:var(--soft);border-radius:16px 16px 16px 4px;padding:10px 12px;
+  font-size:14px;font-weight:650;line-height:1.4;animation:rise .45s cubic-bezier(.2,1.2,.3,1)}
+.bubble.new{animation:popin .55s cubic-bezier(.2,1.4,.3,1)}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes popin{0%{opacity:0;transform:scale(.92) translateY(10px)}100%{opacity:1;transform:none}}
+.stream{margin:8px 0 0;display:flex;flex-direction:column;gap:6px;max-height:148px;overflow:auto}
+.stream .row{font-size:12px;color:var(--mute);display:flex;gap:8px}
+.stream .row b{color:var(--ink2);font-weight:750}
+.stream time{flex-shrink:0;font-variant-numeric:tabular-nums}
+
+.tabs{display:flex;gap:4px;overflow:auto;padding:2px 0 10px;margin:0 -16px;padding-left:16px;padding-right:16px}
+.tabs button{flex:0 0 auto;padding:8px 12px;border-radius:999px;font-weight:800;font-size:13px;color:var(--mute);background:transparent}
+.tabs button.on{background:#111;color:#fff}
+
+.seg{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px;gap:8px}
+.seg .l{font-weight:800}
+.seg .s{display:flex;background:var(--soft);border-radius:999px;padding:3px}
+.seg .s button{padding:5px 10px;border-radius:999px;font-size:12px;font-weight:800;color:var(--mute)}
+.seg .s button.on{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.chips{display:flex;gap:6px;margin:0 0 10px}
+.chips button{padding:5px 10px;border-radius:999px;font-size:12px;font-weight:800;background:var(--soft);color:var(--mute)}
+.chips button.on{background:#111;color:#fff}
+
+.prow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);animation:rise .4s both}
+.av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;color:#fff;flex-shrink:0;
+  letter-spacing:-.04em}
+.prow .mid{min-width:0;flex:1}
+.prow .nm{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .sub{font-size:12px;color:var(--mute);font-weight:650}
+.prow .rt{text-align:right;flex-shrink:0}
+.prow .val{font-weight:800}
+.prow .pct{font-weight:800;font-size:13px}
+.prow .pct.up{color:var(--up)} .prow .pct.down{color:var(--down)}
+.sid{display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:22px;padding:0 7px;
+  border-radius:8px;background:#111;color:#fff;font-size:11px;font-weight:800;letter-spacing:.04em;margin-right:6px}
+.why{font-size:12px;color:var(--mute);margin-top:2px;line-height:1.4}
+.trial{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px 12px;margin:0 0 8px}
+.trial .top{position:static;background:none;padding:0;display:flex;align-items:center;justify-content:space-between}
+.trial .cd{font-weight:800;font-size:12px;background:#111;color:#fff;border-radius:999px;padding:3px 8px}
+.trial .v{font-weight:800;font-size:13px;margin-top:4px}
+.sec-l{font-weight:800;margin:4px 0 8px}
+.hint{font-size:12px;font-weight:700;color:var(--ink2);background:#fff6d8;border:1px solid #f0e2a8;
+  border-radius:12px;padding:10px 12px;margin:0 0 12px}
+.empty{color:var(--mute);font-weight:650;padding:18px 4px;text-align:center}
+.paper{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:800;letter-spacing:.08em;
+  border:1.5px solid #111;border-radius:999px;padding:3px 8px;margin-left:6px;vertical-align:middle}
+.foot{font-size:11px;color:var(--mute);text-align:center;padding:18px 8px 8px;line-height:1.45}
+a.link{color:#0b6bcb;font-weight:750}
+.comic{position:absolute;font:800 22px/1 var(--disp);color:#111;pointer-events:none;
+  animation:comic .8s ease-out forwards;text-shadow:2px 2px 0 #fff, 0 0 0 #111}
+@keyframes comic{0%{opacity:0;transform:scale(.4) rotate(-12deg)}30%{opacity:1;transform:scale(1.15) rotate(6deg)}100%{opacity:0;transform:translateY(-28px) scale(.9)}}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important}
+  .livepill i{box-shadow:none}
+}
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+<div class="top">
+  <a class="back" id="back" href="../">‹</a>
+  <div class="icons">
+    <button class="icon" id="share" aria-label="Share"><svg viewBox="0 0 24 24"><path d="M4 12v8h16v-8"/><path d="M12 4v12"/><path d="M8 8l4-4 4 4"/></svg></button>
+    <button class="icon" id="bell" aria-label="Thoughts"><svg viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0"/></svg></button>
+    <button class="icon" id="hist" aria-label="Activity"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/></svg></button>
+  </div>
+</div>
+<main class="wrap" id="app">
+  <div class="empty">Loading paper copy desk…</div>
+</main>
+<script>
+(function () {
+  const BUILD = "copygrok1";
+  const reduce = () => window.matchMedia && matchMedia("(prefers-reduced-motion:reduce)").matches;
+  function dataKey() {
+    const h = location.hash || "";
+    const m = /(?:^|#|&)d=([^&]+)/.exec(h);
+    return m ? decodeURIComponent(m[1]) : "";
+  }
+  function homeHref() {
+    const d = dataKey();
+    return "../" + (d ? ("#d=" + encodeURIComponent(d)) : "");
+  }
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
+  function money(n, opts){
+    n = Number(n||0);
+    const sign = n < 0 ? "−" : (opts && opts.plus && n>0 ? "+" : "");
+    const abs = Math.abs(n);
+    return sign + "$" + abs.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+  function moneyBig(n){
+    n = Number(n||0);
+    const sign = n < 0 ? "−" : "";
+    const abs = Math.abs(n);
+    const [w,c] = abs.toFixed(2).split(".");
+    return sign + "$" + Number(w).toLocaleString() + '<span class="cents">.' + c + "</span>";
+  }
+  function ago(iso){
+    if(!iso) return "";
+    const t = Date.parse(iso) || (typeof iso==="number" ? iso*1000 : 0);
+    if(!t) return "";
+    const s = (Date.now()-t)/1000;
+    if(s<60) return "just now";
+    if(s<3600) return Math.floor(s/60)+"m ago";
+    if(s<86400) return Math.floor(s/3600)+"h ago";
+    return Math.floor(s/86400)+"d ago";
+  }
+  function colorFor(s){
+    let h=0; s=String(s||"?");
+    for(let i=0;i<s.length;i++) h = (h*31 + s.charCodeAt(i))>>>0;
+    const hues = [20, 32, 200, 160, 280, 0, 45, 220];
+    return "hsl(" + hues[h%hues.length] + " 45% 32%)";
+  }
+  function solscan(addr){ return "https://solscan.io/account/" + encodeURIComponent(addr||""); }
+  function dex(mint){ return "https://dexscreener.com/solana/" + encodeURIComponent(mint||""); }
+
+  let S = { tab:"positions", posMode:"open", range:"24h", lastBal:null, lastThought:null, lastCopy:null };
+  const app = document.getElementById("app");
+  document.getElementById("back").href = homeHref();
+
+  document.getElementById("share").onclick = async () => {
+    const d = dataKey();
+    const url = location.origin + location.pathname + (d ? ("#d="+encodeURIComponent(d)) : "");
+    try { await navigator.clipboard.writeText(url); flash("Link copied"); } catch(e) { flash(url); }
+  };
+  document.getElementById("bell").onclick = () => { document.getElementById("think")?.scrollIntoView({behavior:"smooth"}); };
+  document.getElementById("hist").onclick = () => { S.tab = "activity"; if(S.data) render(S.data, false); };
+
+  function flash(t){
+    const el = document.createElement("div");
+    el.className = "comic"; el.textContent = t;
+    el.style.left = "50%"; el.style.top = "30%"; el.style.transform = "translateX(-50%)";
+    document.getElementById("fx").appendChild(el);
+    setTimeout(() => el.remove(), 900);
+  }
+
+  function endpoints(){
+    const d = dataKey();
+    const out = [];
+    if(d){
+      out.push("../d/" + encodeURIComponent(d) + "/copy-grok.json");
+      out.push("/d/" + encodeURIComponent(d) + "/copy-grok.json");
+    }
+    out.push("/api/copy-grok");
+    return out;
+  }
+  async function load(){
+    let lastErr = null;
+    for(const u of endpoints()){
+      try{
+        const r = await fetch(u, {cache:"no-store"});
+        if(!r.ok) throw new Error("http "+r.status);
+        return await r.json();
+      }catch(e){ lastErr = e; }
+    }
+    throw lastErr || new Error("no data");
+  }
+
+  function orbSvg(mood){
+    return `<div class="orb ${esc(mood||"idle")}" aria-hidden="true">
+      <svg viewBox="0 0 80 80">
+        <circle class="ring" cx="40" cy="40" r="36"/>
+        <circle class="body" cx="40" cy="40" r="28"/>
+        <g class="eyes">
+          <ellipse class="eye" cx="31" cy="37" rx="5.2" ry="6.2"/>
+          <ellipse class="eye" cx="49" cy="37" rx="5.2" ry="6.2"/>
+          <circle class="pupil" cx="32" cy="38" r="2.1"/>
+          <circle class="pupil" cx="50" cy="38" r="2.1"/>
+        </g>
+        <path class="mouth" d="M32 51 Q40 55 48 51"/>
+      </svg>
+    </div>`;
+  }
+
+  function drawChart(canvas, pts, up){
+    if(!canvas || !pts || pts.length<1) return;
+    const dpr = Math.max(1, window.devicePixelRatio||1);
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    canvas.width = w*dpr; canvas.height = h*dpr;
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,w,h);
+    const vs = pts.map(p => p.v);
+    let lo = Math.min.apply(null, vs), hi = Math.max.apply(null, vs);
+    if(!(hi>lo)) { lo -= 1; hi += 1; }
+    const pad = 8, y0 = pad, y1 = h-10;
+    const x = (i) => pad + (w-pad*2) * (pts.length===1 ? 1 : i/(pts.length-1));
+    const y = (v) => y1 - (y1-y0) * ((v-lo)/(hi-lo));
+    ctx.beginPath();
+    pts.forEach((p,i) => { const xx=x(i), yy=y(p.v); i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy); });
+    const lastX = x(pts.length-1), lastY = y(pts[pts.length-1].v);
+    const grad = ctx.createLinearGradient(0,0,0,h);
+    const c = up ? "14,154,90" : "226,59,59";
+    grad.addColorStop(0, "rgba("+c+",.18)"); grad.addColorStop(1, "rgba("+c+",0)");
+    ctx.lineTo(lastX, h); ctx.lineTo(x(0), h); ctx.closePath();
+    ctx.fillStyle = grad; ctx.fill();
+    ctx.beginPath();
+    pts.forEach((p,i) => { const xx=x(i), yy=y(p.v); i?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy); });
+    ctx.strokeStyle = up ? "#0e9a5a" : "#e23b3b";
+    ctx.lineWidth = 2.2; ctx.lineJoin="round"; ctx.lineCap="round"; ctx.stroke();
+    ctx.beginPath(); ctx.arc(lastX, lastY, 5, 0, Math.PI*2);
+    ctx.fillStyle = up ? "#0e9a5a" : "#e23b3b"; ctx.fill();
+    ctx.beginPath(); ctx.arc(lastX, lastY, 9, 0, Math.PI*2);
+    ctx.strokeStyle = "rgba("+c+",.45)"; ctx.lineWidth=3; ctx.stroke();
+  }
+
+  function posRow(p, closed){
+    const sym = p.symbol || (p.mint||"").slice(0,4);
+    const cost = Number(p.size_usd||0);
+    const val = closed ? (cost + Number(p.pnl_usd||0)) : Number(p.mtm_usd!=null ? p.mtm_usd : cost);
+    const pnl = Number(p.pnl_usd||0);
+    const base = closed ? cost : (cost || val);
+    const pct = base ? 100*pnl/base : 0;
+    const up = pnl >= 0;
+    const sub = closed
+      ? ((p.exit_reason||"closed") + " · " + (p.leader_id||""))
+      : (money(cost) + " · " + esc(sym) + " · @" + esc(p.leader_id||""));
+    const href = p.mint ? dex(p.mint) : "#";
+    return `<a class="prow" href="${esc(href)}" target="_blank" rel="noopener">
+      <div class="av" style="background:${colorFor(sym)}">${esc((sym||"?").slice(0,2).toUpperCase())}</div>
+      <div class="mid"><div class="nm">${esc(p.name||sym)}</div><div class="sub">${esc(sub)}</div></div>
+      <div class="rt"><div class="val num">${money(closed ? pnl : val, {plus:closed})}</div>
+        <div class="pct ${up?"up":"down"}">${up?"▲":"▼"} ${Math.abs(pct).toFixed(1)}%</div></div>
+    </a>`;
+  }
+
+  function leaderRow(L, followed){
+    const pnl = Number(L.total_pnl||0);
+    const up = pnl >= 0;
+    const wr = L.has_fills && L.win_rate!=null ? (L.win_rate+"% WR") : "no fills yet";
+    const trades = (L.closed||0) + " closed · " + (L.open||0) + " open";
+    const href = L.address ? solscan(L.address) : (L.fomo || "#");
+    const extra = L.fomo ? ` · <a class="link" href="${esc(L.fomo)}" target="_blank" rel="noopener">FOMO profile</a>` : "";
+    return `<a class="prow" href="${esc(href)}" target="_blank" rel="noopener">
+      <div class="av" style="background:${colorFor(L.id||L.name)}">${esc((L.name||L.id||"?").slice(0,2).toUpperCase())}</div>
+      <div class="mid"><div class="nm">${followed?"":"<span class=sid>"+esc(L.id||L.short_id||"")+"</span>"}${esc(L.name||L.handle||L.id)}</div>
+        <div class="sub">${esc(L.handle||"")} · ${esc(trades)} · ${esc(wr)}${extra}</div>
+        ${L.why ? `<div class="why">${esc(L.why)}</div>` : ""}
+      </div>
+      <div class="rt"><div class="val num ${L.has_fills?(up?"pct up":"pct down"):""}">${L.has_fills?money(pnl,{plus:true}):"—"}</div>
+        <div class="sub">${followed ? (L.has_fills?"paper PnL":"watching") : "tell me: follow "+esc(L.id||"")}</div></div>
+    </a>`;
+  }
+
+  function candRow(c){
+    const paper = (c.paper&&c.paper.mirror)||{};
+    const wr = c.win_rate!=null ? c.win_rate+"% on-chain WR" : "thin on-chain sample";
+    const href = c.solscan || solscan(c.address);
+    const freq = c.recent_buys_48h ? (c.recent_buys_48h + " buys / 48h") : "quiet in window";
+    return `<div class="prow">
+      <div class="av" style="background:${colorFor(c.address)}">${esc((c.short_id||"c").slice(0,2).toUpperCase())}</div>
+      <div class="mid">
+        <div class="nm"><span class="sid">${esc(c.short_id||c.id)}</span>${esc(c.handle||"")}</div>
+        <div class="sub"><a class="link" href="${esc(href)}" target="_blank" rel="noopener">${esc((c.address||"").slice(0,4)+"…"+(c.address||"").slice(-4))}</a>
+          · ${esc(freq)} · ${esc(wr)}</div>
+        <div class="why">${esc(c.why||"")}${paper.trades?(" · paper follow "+paper.trades+" closed, "+money(paper.pnl,{plus:true})):""}</div>
+      </div>
+      <div class="rt"><div class="val">follow ${esc(c.short_id||c.id)}</div>
+        <div class="sub">${c.verified_buys||0} signed buys</div></div>
+    </div>`;
+  }
+
+
+  function trialBlock(d){
+    const rows = d.trials || [];
+    const live = rows.filter(r => r.status === "running");
+    const done = rows.filter(r => r.status !== "running").slice(0,4);
+    if(!live.length && !done.length) return "";
+    const card = (r) => {
+      const up = (r.pnl||0) >= 0;
+      const cd = r.countdown || (r.status==="running" ? "running" : (r.verdict || r.status));
+      return `<div class="trial">
+        <div class="top"><div class="nm"><span class="sid">${esc(r.id)}</span>@${esc(r.handle||"")}</div>
+          <span class="cd">${esc(cd)}</span></div>
+        <div class="chg ${up?"up":"down"}">${(r.pnl>=0?"+":"")}${money(r.pnl)} · ${r.closed||0} closed · ${r.open||0} open</div>
+        ${r.verdict ? `<div class="v">${esc(r.verdict)} — reply YES ${esc(r.id)}</div>` : `<div class="why">24h paper trial · separate book · ${esc(d.trial_rule||"")}</div>`}
+      </div>`;
+    };
+    return `<div class="sec-l">On trial</div>${live.map(card).join("")}${done.length?`<div class="why" style="margin:6px 0">Recent verdicts</div>${done.map(card).join("")}`:""}`;
+  }
+
+  function render(d, animate){
+    const eq = Number(d.now_value||d.balance||0);
+    const start = Number(d.started_with||0);
+    const chgAll = Number(d.change|| (eq-start));
+    const range = S.range;
+    const period = range==="24h" ? d.pnl_24h : range==="7d" ? d.pnl_7d : d.pnl_30d;
+    const periodN = period==null ? chgAll : Number(period);
+    const up = periodN >= 0;
+    const mood = d.mood || "idle";
+    const thoughts = d.thoughts || [];
+    const latest = thoughts[0];
+    const chartKey = range==="24h" ? "1D" : range==="7d" ? "7D" : "30D";
+    const chart = (d.charts&& (d.charts[chartKey]||d.charts["ALL"]||d.charts["1D"])) || {points:[]};
+
+    const openPos = (d.positions||[]).filter(p => p.status==="open");
+    const closedPos = (d.positions||[]).filter(p => p.status!=="open");
+    const showing = S.posMode==="open" ? openPos : closedPos;
+
+    const tab = S.tab;
+    let body = "";
+    if(tab==="positions"){
+      body = `<div class="seg"><div class="l">Positions (${S.posMode==="open"?openPos.length:closedPos.length})</div>
+        <div class="s">
+          <button data-pos="open" class="${S.posMode==="open"?"on":""}">Open</button>
+          <button data-pos="closed" class="${S.posMode==="closed"?"on":""}">Closed</button>
+        </div></div>
+        <div class="chips"><button class="on">All</button><button>Tokens</button></div>
+        ${showing.length ? showing.map(p => posRow(p, S.posMode==="closed")).join("") : `<div class="empty">${S.posMode==="open"?"No open paper positions right now.":"No closed trades yet."}</div>`}`;
+    } else if(tab==="activity"){
+      const rows = d.activity||[];
+      body = `<div class="seg"><div class="l">Activity</div></div>` +
+        (rows.length ? rows.map(a => `<div class="prow">
+          <div class="av" style="background:${colorFor(a.kind||a.title)}">${esc((a.kind||"•").slice(0,2).toUpperCase())}</div>
+          <div class="mid"><div class="nm">${esc(a.title||a.kind)}</div><div class="sub">${esc(a.subtitle||"")} · ${esc(ago(a.ts))}</div></div>
+          <div class="rt"><div class="val">${esc(a.value||"")}</div></div>
+        </div>`).join("") : `<div class="empty">No activity yet.</div>`);
+    } else if(tab==="leaders"){
+      const Ls = d.leaders||[];
+      body = `<div class="seg"><div class="l">Followed leaders (${Ls.length})</div></div>
+        <div class="hint">These are the previously approved public wallets the paper bot already follows. Per-leader PnL is this desk’s paper fills, not the trader’s public scorecard.</div>
+        ${Ls.length ? Ls.map(L => leaderRow(L, true)).join("") : `<div class="empty">No leaders enabled.</div>`}`;
+    } else {
+      const disc = d.discovery||{};
+      const cs = disc.candidates||[];
+      body = `<div class="seg"><div class="l">Find traders</div></div>
+        <div class="hint">${esc(disc.how_to_follow || d.how_to_follow || "Start a 24h paper trial in Telegram with /copy c12 (or a handle/wallet). After the verdict, reply YES <id>. I will not auto-add anyone.")}
+          ${disc.window_note ? " · "+esc(disc.window_note) : ""}</div>
+        ${cs.length ? cs.map(candRow).join("") : `<div class="empty">No watch-only candidates yet — the desk will refresh public activity while it runs.</div>`}`;
+    }
+
+    app.innerHTML = `
+      <div class="head">
+        <div class="orbwrap" id="orbslot">${orbSvg(mood)}</div>
+        <span class="livepill"><i></i> PAPER${d.alive ? " · LIVE" : ""}</span>
+      </div>
+      <div class="name">Grok Copy Bot <span class="paper">PAPER</span></div>
+      <div class="handle">@grokcopy</div>
+      <div class="counts"><b>${d.following||0}</b> Following · — Followers</div>
+      <div class="meta">
+        <span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>${esc(d.avg_hold_label||"—")}</span>
+        <span><svg viewBox="0 0 24 24"><path d="M4 7h16v12H4z"/><path d="M8 7V5h8v2"/></svg>${esc((d.closed_positions||0)+" trades")}</span>
+        <span><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4M16 3v4"/></svg>${esc(d.joined_label||"Joined Nov 2026")}</span>
+      </div>
+      <div class="balrow">
+        <div>
+          <div class="bal num" id="bal">${moneyBig(eq)}</div>
+          <div class="chg ${up?"up":"down"}">${up?"+":""}${money(periodN)} ${range}</div>
+        </div>
+        <div class="tog">
+          <button data-range="24h" class="${range==="24h"?"on":""}">24h</button>
+          <button data-range="7d" class="${range==="7d"?"on":""}">7d</button>
+          <button data-range="30d" class="${range==="30d"?"on":""}">30d</button>
+        </div>
+      </div>
+      <div class="run">${esc(d.run_line||"")}</div>
+      <div class="chart"><canvas id="eqchart"></canvas></div>
+      <div class="cash"><span class="dot">$</span> Total cash ${money(d.cash)}</div>
+      <div class="think" id="think">
+        <div class="k">Live thinking</div>
+        <div class="bubble ${animate && latest && latest.id!==S.lastThought ? "new":""}">${latest ? esc(latest.text) : "Waiting for the next real desk event…"}</div>
+        <div class="stream">
+          ${thoughts.slice(1,8).map(th => `<div class="row"><time>${esc(ago(th.ts))}</time><b>${esc(th.kind)}</b> ${esc(th.text)}</div>`).join("")}
+        </div>
+      </div>
+      ${trialBlock(d)}
+      <div class="tabs">
+        <button data-tab="positions" class="${tab==="positions"?"on":""}">Positions</button>
+        <button data-tab="activity" class="${tab==="activity"?"on":""}">Activity</button>
+        <button data-tab="leaders" class="${tab==="leaders"?"on":""}">Leaders</button>
+        <button data-tab="find" class="${tab==="find"?"on":""}">Find traders</button>
+      </div>
+      ${body}
+      <div class="foot">PAPER ONLY — no real wallets, no real orders. Public leader trades are signals with independent gates, fees, a 50% impact cap, and a floor so a position cannot lose more than its ticket. Not financial advice. Existing leaders stay. New names start as a 24h paper trial (/copy in Telegram); only YES <id> after the verdict adds them to the main desk.</div>
+    `;
+    const cvs = document.getElementById("eqchart");
+    drawChart(cvs, (chart.points||[]), Number((chart.points||[]).slice(-1)[0]?.v || eq) >= start);
+    if(animate && S.lastBal!=null && Math.abs(eq-S.lastBal)>0.001){
+      const bal = document.getElementById("bal");
+      bal.classList.add(eq>=S.lastBal ? "flash-up" : "flash-down");
+    }
+    if(animate && latest && latest.kind==="copy" && latest.id!==S.lastCopy){
+      flash("COPIED!");
+      S.lastCopy = latest.id;
+    }
+    if(animate && latest && latest.kind==="stop" && latest.id!==S.lastCopy){
+      flash("STOPPED");
+      S.lastCopy = latest.id;
+    }
+    S.lastBal = eq;
+    if(latest) S.lastThought = latest.id;
+
+    app.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { S.tab=b.dataset.tab; render(S.data,false); });
+    app.querySelectorAll("[data-pos]").forEach(b => b.onclick = () => { S.posMode=b.dataset.pos; render(S.data,false); });
+    app.querySelectorAll("[data-range]").forEach(b => b.onclick = () => { S.range=b.dataset.range; render(S.data,false); });
+  }
+
+  async function tick(first){
+    try{
+      const d = await load();
+      S.data = d;
+      render(d, !first && !reduce());
+    }catch(e){
+      if(first) app.innerHTML = `<div class="empty">Couldn’t load the copy desk yet. ${esc(e.message||e)}</div>`;
+    }
+  }
+  tick(true);
+  setInterval(() => tick(false), 15000);
+})();
+</script>
+</body>
+</html>
