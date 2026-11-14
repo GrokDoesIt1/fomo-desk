@@ -109,6 +109,17 @@ a{text-decoration:none}
   align-items:center;justify-content:center;font-size:12px;margin-right:6px;vertical-align:2px}
 .setting{margin:6px 0 10px;font-size:12px;color:var(--t2);line-height:1.4}
 .eq{font:800 40px/1 var(--disp);letter-spacing:-1px;font-variant-numeric:tabular-nums;margin:2px 0 4px;transition:color .25s}
+.runbox{margin:6px 0 10px}
+.run-start{font-size:16px;font-weight:800;color:var(--t2);letter-spacing:-.01em;line-height:1.25}
+.run-now-label{font-size:16px;font-weight:800;color:var(--t2);margin:2px 0 0}
+.run-now{font:800 38px/1.05 var(--disp);letter-spacing:-1.2px;font-variant-numeric:tabular-nums;margin:2px 0 4px;white-space:nowrap}
+.run-chg{font:800 22px/1.2 var(--disp);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.run-note{font-size:12px;color:var(--t2);line-height:1.4;margin-top:6px}
+.slipnote{font-size:13px;font-weight:700;line-height:1.4;margin:10px 0 0;padding:10px 12px;border-radius:14px;
+  border:1px solid rgba(255,165,58,.5);color:#ffd59a;background:rgba(255,165,58,.1)}
+.bmid .run{display:block;text-decoration:none;font-size:13px;font-weight:800;line-height:1.35;color:inherit;
+  white-space:normal;margin:3px 0 2px;letter-spacing:-.01em}
+.hero .run{font:800 15px/1.35 var(--disp);margin-top:8px;letter-spacing:-.02em;white-space:normal}
 .eq.flash-up{animation:popn .45s ease;color:var(--g)}
 .eq.flash-dn{animation:popn .45s ease;color:var(--r)}
 @keyframes popn{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
@@ -171,7 +182,7 @@ a{text-decoration:none}
 
 <script>
 (function () {
-  const BUILD = "versions3-leader";
+  const BUILD = "versions4-startnow";
   const h = new URLSearchParams(location.hash.slice(1));
   let DPATH = h.get("d") || localStorage.getItem("desk_d") || "";
   let TOKEN = h.get("t") || localStorage.getItem("desk_t") || "";
@@ -225,6 +236,41 @@ a{text-decoration:none}
     return "$" + Math.round(n);
   }
   function cls(v) { return v > 0 ? "up" : v < 0 ? "down" : ""; }
+  function money(v, sign) {
+    if (v == null || isNaN(v)) return "—";
+    const n = Number(v);
+    const body = "$" + Math.abs(n).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    if (sign) return (n > 0 ? "+" : n < 0 ? "−" : "") + body;
+    return (n < 0 ? "−" : "") + body;
+  }
+  function startMoney(v) {
+    if (v == null || isNaN(v)) return "—";
+    const n = Number(v);
+    const whole = Math.abs(n - Math.round(n)) < 0.001;
+    const body = whole
+      ? "$" + Math.abs(n).toLocaleString("en-US", {maximumFractionDigits: 0})
+      : "$" + Math.abs(n).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    return (n < 0 ? "−" : "") + body;
+  }
+  function runLine(v) {
+    if (v && v.run_line) return v.run_line;
+    const start = v.started_with, now = v.now_value, chg = v.change, pct = v.change_pct;
+    if (start == null || now == null) return "";
+    const pcts = (pct == null ? "—" : (pct > 0 ? "+" : pct < 0 ? "−" : "") + Math.abs(pct).toFixed(1) + "%");
+    return "Started with " + startMoney(start) + " → now " + money(now) + " (" + money(chg, true) + ", " + pcts + ")";
+  }
+  function runBox(v) {
+    const start = v.started_with, now = v.now_value, chg = v.change, pct = v.change_pct;
+    const pcts = (pct == null ? "—" : (pct > 0 ? "+" : pct < 0 ? "−" : "") + Math.abs(pct).toFixed(1) + "%");
+    return `<div class="runbox">
+      <div class="run-start">Started with ${startMoney(start)}</div>
+      <div class="run-now-label">→ now</div>
+      <div class="run-now num ${cls(chg)}">${money(now)}</div>
+      <div class="run-chg ${cls(chg)}">${money(chg, true)} · ${pcts}</div>
+      ${v.start_note ? `<div class="run-note">${esc(v.start_note)}</div>` : ""}
+      ${v.slip_note ? `<div class="slipnote">${esc(v.slip_note)}</div>` : ""}
+    </div>`;
+  }
 
   function spark(cv, pts, up) {
     if (!cv) return;
@@ -320,7 +366,7 @@ a{text-decoration:none}
       <a class="brow ${v.leader ? 'lead' : ''} ${wait ? 'wait' : ''} ${warm ? 'warm' : ''}" href="#v-${esc(v.id)}" style="animation-delay:${i * 40}ms">
         <div class="rank">${rank}</div>
         <div class="blet">${esc(v.letter)}</div>
-        <div class="bmid"><b>${esc(v.name)}</b><s>${v.trades} trades · WR ${wr(v.win_rate)} · open ${v.open}</s></div>
+        <div class="bmid"><b>${esc(v.name)}</b><span class="run ${cls(v.change)}">Started with ${startMoney(v.started_with)}<br>→ now ${money(v.now_value)} (${money(v.change, true)}, ${v.change_pct == null ? "—" : (v.change_pct > 0 ? "+" : v.change_pct < 0 ? "−" : "") + Math.abs(v.change_pct).toFixed(1) + "%"})</span><s>${v.trades} trades · WR ${wr(v.win_rate)} · open ${v.open}</s></div>
         ${pnl}
       </a>`;
     }).join("");
@@ -359,11 +405,9 @@ a{text-decoration:none}
         <div class="live" style="font-size:10px">${v.telegram ? 'Telegram calls' : 'silent'}</div>
       </div>
       <div class="setting">${esc(v.short)}</div>
-      <div class="eq num ${cls(v.pnl)}" data-eq="${v.equity}">${v.basis === "tickets" ? usd(v.pnl, true) : usd(v.equity)}</div>
-      ${v.basis === "tickets" ? `<div class="eqsub">${v.trades && v.pnl_multiple != null ? fmtMult(v.pnl_multiple) + ' money risked' : '—'} · $${Number(v.money_risked || 0).toFixed(0)} risked${v.best_mult ? ' · best ' + fmtMult(v.best_mult) : ''}</div>` : ''}
+      ${runBox(v)}
+      ${v.basis === "tickets" ? `<div class="eqsub">${v.trades && v.pnl_multiple != null ? fmtMult(v.pnl_multiple) + ' money risked' : '—'}${v.best_mult ? ' · best ' + fmtMult(v.best_mult) : ''}</div>` : ''}
       <div class="pnlrow">
-        <span class="p ${cls(v.pnl)}">${usd(v.pnl, true)}</span>
-        <span class="${cls(v.pnl_pct)}">${v.basis === "tickets" ? (v.trades && v.pnl_multiple != null ? fmtMult(v.pnl_multiple) : "—") : pct(v.pnl_pct)}</span>
         <span class="t2">today <b class="${cls(v.today_pnl)}">${usd(v.today_pnl, true)}</b></span>
         ${v.unrealized ? `<span class="t2">open mark <b class="${cls(v.unrealized)}">${usd(v.unrealized, true)}</b></span>` : ''}
       </div>
@@ -400,6 +444,7 @@ a{text-decoration:none}
         <div class="k">${heroK}</div>
         <div class="who">${heroWho}</div>
         <div class="big num ${lead ? cls(lead.pnl) : ''}">${lead ? usd(lead.pnl, true) : '—'}</div>
+        ${lead && lead.run_line ? `<div class="run ${cls(lead.change)}">${esc(lead.run_line)}</div>` : ''}
         <div class="sub">
           <span>WR <b>${lead ? wr(lead.win_rate) : '—'}</b></span>
           <span><b>${lead ? lead.trades : 0}</b> trades</span>
