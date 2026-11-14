@@ -274,10 +274,8 @@
       view.innerHTML = `<div class="err">Could not load PAPER desk data. ${e.message}</div>`;
     }
     setupPush();
-    setInterval(() => refresh().then(() => {
-      const h = new URLSearchParams((location.hash || "").replace(/^#/, ""));
-      setTab(h.get("tab") || "home", false);
-    }).catch(() => {}), 60000);
+    window.addEventListener("hashchange", () => setTab(tabFromHash(), false));
+    setInterval(() => refresh().then(() => setTab(tabFromHash(), false)).catch(() => {}), 60000);
   }
   boot();
 })();
