@@ -181,7 +181,9 @@
         <div class="m">${c.run_line || ""}</div>
         <div class="row"><span>Following</span><span>${c.following || 0}</span></div>
         <div class="row"><span>Today / booked</span><span>${signed(c.pnl_24h)} / ${signed(c.booked_pnl ?? c.change)}</span></div>
+        ${c.main_copy_paused ? `<div class="row"><span>Main copy</span><span>paused (trials only)</span></div>` : ""}
       </div>
+      ${c.main_copy_paused ? `<div class="item" style="margin-top:10px;border-color:#e8d48a;background:#2a2410;color:#ffe08a">Main copy: paused (trials only)</div>` : ""}
       <div class="h"><h1>Thinking</h1></div>
       ${(thoughts.map((t) => `<div class="thought">${(t.text || t.body || t).toString()}</div>`).join("")) || "<div class='m'>No thoughts yet.</div>"}
       <p><a class="more" href="../copy-grok/">Open Copy Grok page ↗</a></p>`;
@@ -191,11 +193,12 @@
     const trials = (cache.copy && cache.copy.trials) || [];
     view.innerHTML = `
       <div class="h"><h1>Trials</h1><span>${trials.length}/10 · PAPER</span></div>
-      <div class="m" style="margin-bottom:10px">Separate $200 books. Verdict after 24h. Only a YES after the verdict adds someone to the main copy desk.</div>
+      <div class="m" style="margin-bottom:10px">Separate $1,000 books. Verdict after 24h. Only a YES after the verdict adds someone to the main copy desk.</div>
+      <div class="m" style="margin-bottom:10px">${(cache.copy && (cache.copy.trial_trade_rules || (trials[0] && trials[0].trade_rules))) || "ENTRY: fresh buy, MC under $500k, ticket = 10% of the leader's buy (capped at cash, skip under $1). At ~2x take initials out and hold a moonbag with a 40% trail; full exit if the leader sells out; -25% hard stop. No mirroring of leader partials. PAPER ONLY."}</div>
       <div class="list">${trials.map((t) => `
         <div class="item">
           <div class="t"><span>${t.id} · @${t.handle || "trader"}</span><span>${t.status || ""}</span></div>
-          <div class="m">${remain(t.ends_at || t.ends)} · cash ${usd(t.cash_usd ?? t.cash ?? 200)} · PAPER</div>
+          <div class="m">${remain(t.ends_at || t.ends)} · cash ${usd(t.cash_usd ?? t.cash ?? 1000)} · $${Number(t.start_usd || (cache.copy && cache.copy.trial_start_usd) || 1000).toLocaleString()} start · PAPER</div>
         </div>`).join("") || "<div class='item'><div class='m'>No paper trials running.</div></div>"}
       </div>`;
   }

@@ -89,6 +89,8 @@ button{background:none;border:0;padding:0;cursor:pointer}
 .tog{display:flex;background:var(--soft);border-radius:999px;padding:3px;flex-shrink:0}
 .tog button{padding:5px 9px;border-radius:999px;font-size:12px;font-weight:800;color:var(--mute)}
 .tog button.on{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.pause-banner{margin:0 0 10px;padding:9px 12px;border-radius:12px;font-size:13px;font-weight:800;
+  letter-spacing:.01em;background:#fff3c4;border:1px solid #e8d48a;color:#3b2f00;}
 .run{margin:8px 0 12px;font-weight:700;font-size:13px;color:var(--ink2);background:var(--soft);
   border-radius:12px;padding:8px 10px}
 
@@ -378,10 +380,11 @@ a.link{color:#0b6bcb;font-weight:750}
         <div class="top"><div class="nm"><span class="sid">${esc(r.id)}</span>@${esc(r.handle||"")}</div>
           <span class="cd">${esc(cd)}</span></div>
         <div class="chg ${up?"up":"down"}">${(r.pnl>=0?"+":"")}${money(r.pnl)} · ${r.closed||0} closed · ${r.open||0} open</div>
-        ${r.verdict ? `<div class="v">${esc(r.verdict)} — reply YES ${esc(r.id)}</div>` : `<div class="why">24h paper trial · separate book · ${esc(d.trial_rule||"")}</div>`}
+        ${r.verdict ? `<div class="v">${esc(r.verdict)} — reply YES ${esc(r.id)}</div>` : `<div class="why">24h paper trial · $${Number(r.start_usd||d.trial_start_usd||1000).toLocaleString()} book · ${esc(d.trial_rule||"")}</div>`}
       </div>`;
     };
-    return `<div class="sec-l">On trial</div>${live.map(card).join("")}${done.length?`<div class="why" style="margin:6px 0">Recent verdicts</div>${done.map(card).join("")}`:""}`;
+    const rules = d.trial_trade_rules || (live[0] && live[0].trade_rules) || "";
+    return `<div class="sec-l">On trial</div>${rules?`<div class="why" style="margin:0 0 8px">${esc(rules)}</div>`:""}${live.map(card).join("")}${done.length?`<div class="why" style="margin:6px 0">Recent verdicts</div>${done.map(card).join("")}`:""}`;
   }
 
   function render(d, animate){
@@ -423,7 +426,7 @@ a.link{color:#0b6bcb;font-weight:750}
     } else if(tab==="leaders"){
       const Ls = d.leaders||[];
       body = `<div class="seg"><div class="l">Followed leaders (${Ls.length})</div></div>
-        <div class="hint">These are the previously approved public wallets the paper bot already follows. Per-leader PnL is this desk’s paper fills, not the trader’s public scorecard.</div>
+        <div class="hint">${d.main_copy_paused ? "Main copy: paused (trials only). The 100 followed wallets stay on the list with their history; no new main-book entries until the pause is lifted. Existing open positions still use normal exits." : "These are the previously approved public wallets the paper bot already follows. Per-leader PnL is this desk’s paper fills, not the trader’s public scorecard."}</div>
         ${Ls.length ? Ls.map(L => leaderRow(L, true)).join("") : `<div class="empty">No leaders enabled.</div>`}`;
     } else {
       const disc = d.discovery||{};
@@ -458,6 +461,7 @@ a.link{color:#0b6bcb;font-weight:750}
           <button data-range="30d" class="${range==="30d"?"on":""}">30d</button>
         </div>
       </div>
+      ${d.main_copy_paused ? `<div class="pause-banner">${esc(d.main_copy_status||"Main copy: paused (trials only)")}</div>` : ""}
       <div class="run">${esc(d.run_line||"")}</div>
       <div class="chart"><canvas id="eqchart"></canvas></div>
       <div class="cash"><span class="dot">$</span> Total cash ${money(d.cash)}</div>
