@@ -76,6 +76,8 @@ a{text-decoration:none}
 .brow.lead{border-color:rgba(22,224,122,.45);box-shadow:0 0 0 1px rgba(22,224,122,.2),0 8px 28px rgba(22,224,122,.08)}
 .brow.wait{opacity:.72}
 .brow.wait .bpnl{color:var(--t3);font-weight:700;font-size:12px}
+.brow.warm .bpnl{font-size:14px}
+.brow.warm .bpnl .held{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--t3);margin-top:2px}
 .rank{width:22px;font:800 15px/1 var(--disp);color:var(--t3);flex-shrink:0}
 .brow.lead .rank{color:var(--y)}
 .blet{width:28px;height:28px;border-radius:9px;background:#1c1c20;display:flex;align-items:center;justify-content:center;
@@ -169,7 +171,7 @@ a{text-decoration:none}
 
 <script>
 (function () {
-  const BUILD = "versions2-moonshot";
+  const BUILD = "versions3-leader";
   const h = new URLSearchParams(location.hash.slice(1));
   let DPATH = h.get("d") || localStorage.getItem("desk_d") || "";
   let TOKEN = h.get("t") || localStorage.getItem("desk_t") || "";
@@ -298,21 +300,28 @@ a{text-decoration:none}
   }
 
   function board(vs) {
-    const traded = vs.filter(v => v.trades || v.open).slice().sort((a, b) => {
+    const ranked = vs.filter(v => v.trades).slice().sort((a, b) => {
       if (a.leader && !b.leader) return -1;
       if (b.leader && !a.leader) return 1;
       return (b.pnl - a.pnl) || (b.trades - a.trades);
     });
-    const waiting = vs.filter(v => !(v.trades || v.open));
-    const ranked = traded.concat(waiting);
-    return ranked.map((v, i) => {
-      const rank = v.leader ? '★' : ((v.trades || v.open) ? String(traded.indexOf(v) + 1) : '—');
+    const warming = vs.filter(v => !v.trades && v.open);
+    const waiting = vs.filter(v => !v.trades && !v.open);
+    const rows = ranked.concat(warming).concat(waiting);
+    return rows.map((v, i) => {
+      const warm = !v.trades && v.open;
+      const wait = !v.trades && !v.open;
+      const rank = v.leader ? '★' : (v.trades ? String(ranked.indexOf(v) + 1) : '—');
+      let pnl;
+      if (v.trades) pnl = `<div class="bpnl ${cls(v.pnl)}">${usd(v.pnl, true)}</div>`;
+      else if (warm) pnl = `<div class="bpnl ${cls(v.unrealized)}">${usd(v.unrealized, true)}<div class="held">warming up</div></div>`;
+      else pnl = `<div class="bpnl">waiting</div>`;
       return `
-      <a class="brow ${v.leader ? 'lead' : ''} ${!(v.trades||v.open) ? 'wait' : ''}" href="#v-${esc(v.id)}" style="animation-delay:${i * 40}ms">
+      <a class="brow ${v.leader ? 'lead' : ''} ${wait ? 'wait' : ''} ${warm ? 'warm' : ''}" href="#v-${esc(v.id)}" style="animation-delay:${i * 40}ms">
         <div class="rank">${rank}</div>
         <div class="blet">${esc(v.letter)}</div>
         <div class="bmid"><b>${esc(v.name)}</b><s>${v.trades} trades · WR ${wr(v.win_rate)} · open ${v.open}</s></div>
-        <div class="bpnl ${cls(v.pnl)}">${(v.trades||v.open) ? usd(v.pnl, true) : 'waiting'}</div>
+        ${pnl}
       </a>`;
     }).join("");
   }
@@ -351,10 +360,10 @@ a{text-decoration:none}
       </div>
       <div class="setting">${esc(v.short)}</div>
       <div class="eq num ${cls(v.pnl)}" data-eq="${v.equity}">${v.basis === "tickets" ? usd(v.pnl, true) : usd(v.equity)}</div>
-      ${v.basis === "tickets" ? `<div class="eqsub">${v.pnl_multiple != null ? fmtMult(v.pnl_multiple) + ' money risked' : 'no bets yet'} · $${Number(v.money_risked || 0).toFixed(0)} risked${v.best_mult ? ' · best ' + fmtMult(v.best_mult) : ''}</div>` : ''}
+      ${v.basis === "tickets" ? `<div class="eqsub">${v.trades && v.pnl_multiple != null ? fmtMult(v.pnl_multiple) + ' money risked' : '—'} · $${Number(v.money_risked || 0).toFixed(0)} risked${v.best_mult ? ' · best ' + fmtMult(v.best_mult) : ''}</div>` : ''}
       <div class="pnlrow">
         <span class="p ${cls(v.pnl)}">${usd(v.pnl, true)}</span>
-        <span class="${cls(v.pnl_pct)}">${v.basis === "tickets" && v.pnl_multiple != null ? fmtMult(v.pnl_multiple) : pct(v.pnl_pct)}</span>
+        <span class="${cls(v.pnl_pct)}">${v.basis === "tickets" ? (v.trades && v.pnl_multiple != null ? fmtMult(v.pnl_multiple) : "—") : pct(v.pnl_pct)}</span>
         <span class="t2">today <b class="${cls(v.today_pnl)}">${usd(v.today_pnl, true)}</b></span>
         ${v.unrealized ? `<span class="t2">open mark <b class="${cls(v.unrealized)}">${usd(v.unrealized, true)}</b></span>` : ''}
       </div>
