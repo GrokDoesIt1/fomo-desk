@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Grok Desk">
+<meta name="theme-color" content="#07080c">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="PAPER Grok Desk — Main, Versions, Copy Bot, and Trials.">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="stylesheet" href="app.css">
+<title>Grok Desk · PAPER</title>
+</head>
+<body>
+  <div id="splash" class="splash">
+    <img src="icon-192.png" alt="" width="88" height="88">
+    <div class="splash-name">Grok Desk</div>
+    <div class="paper-badge pulse">PAPER ONLY</div>
+  </div>
+  <header class="top">
+    <div class="brand">
+      <img src="apple-touch-icon.png" alt="" width="28" height="28">
+      <div>
+        <div class="name">Grok Desk</div>
+        <div class="sub"><span class="paper-badge">PAPER</span> <span id="clock"></span></div>
+      </div>
+    </div>
+    <button id="btn-push" class="push-btn" type="button">Enable alerts</button>
+  </header>
+  <main id="view" class="view"></main>
+  <nav class="tabbar" id="tabs">
+    <button data-tab="home" class="on" type="button"><span class="ico">⌂</span><span>Home</span></button>
+    <button data-tab="main" type="button"><span class="ico">▣</span><span>Main</span></button>
+    <button data-tab="versions" type="button"><span class="ico">▤</span><span>Versions</span></button>
+    <button data-tab="copy" type="button"><span class="ico">◎</span><span>Copy Bot</span></button>
+    <button data-tab="trials" type="button"><span class="ico">◔</span><span>Trials</span></button>
+  </nav>
+  <div id="toast" class="toast" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>
