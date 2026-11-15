@@ -57,6 +57,50 @@
     if (b.win_rate == null) return "—";
     return Number(b.win_rate).toFixed(0) + "%";
   }
+  function rateOrNA(valuePct, reason) {
+    if (valuePct != null && !Number.isNaN(Number(valuePct))) return Number(valuePct).toFixed(0) + "%";
+    const r = reason || "n/a";
+    return "n/a";
+  }
+  function holdOrNA(b) {
+    const g = b.grader || {};
+    if (g.median_hold_minutes != null && !Number.isNaN(Number(g.median_hold_minutes))) {
+      return Number(g.median_hold_minutes).toFixed(Number(g.median_hold_minutes) < 10 ? 1 : 0) + " min";
+    }
+    return "n/a";
+  }
+  function flagsBlock(b) {
+    const flags = b.grader_flags || (b.grader && b.grader.flags_display) || [];
+    if (!flags.length && !(b.grader_warnings || []).length) return "";
+    const bits = (flags.length ? flags : (b.grader_warnings || []).map((t) => ({ text: t, tone: "warn" })))
+      .map((f) => {
+        const tone = (f && f.tone) || "note";
+        const text = (f && f.text) || f;
+        return `<span class="tr-flag ${tone}">${esc(text)}</span>`;
+      }).join("");
+    return `<div class="tr-flags">${bits}</div>`;
+  }
+  function warnLine(b) {
+    const warns = b.grader_warnings || (b.grader && b.grader.warnings) || [];
+    if (!warns.length) return "";
+    return `<div class="tr-warn">${esc(warns.join(" · "))}</div>`;
+  }
+  function graderMore(b) {
+    const g = b.grader;
+    if (!g) return `<p class="tr-empty">Wallet checks not computed yet.</p>`;
+    const dumpR = g.follower_dump_reason ? ` <span class="why">${esc(g.follower_dump_reason)}</span>` : "";
+    const clusR = g.cluster_reason ? ` <span class="why">${esc(g.cluster_reason)}</span>` : "";
+    const holdR = g.median_hold_reason ? ` <span class="why">${esc(g.median_hold_reason)}</span>` : "";
+    const earlyR = g.early_reason ? ` <span class="why">${esc(g.early_reason)}</span>` : "";
+    const hold = holdOrNA(b) + (g.median_hold_flag ? " (too fast to copy)" : "");
+    return `<div class="tr-grader">
+      <div class="row"><span>Dumps on followers</span><span>${esc(rateOrNA(g.follower_dump_rate_pct, g.follower_dump_reason))}${dumpR}</span></div>
+      <div class="row"><span>Cluster</span><span>${esc(rateOrNA(g.cluster_share_pct, g.cluster_reason))}${clusR}</span></div>
+      <div class="row"><span>Median hold</span><span>${esc(hold)}${holdR}</span></div>
+      <div class="row"><span>Early 3× rate</span><span>${esc(rateOrNA(g.early_rate_pct, g.early_reason))}${earlyR}</span></div>
+      <p class="tr-adv">Advisory only. These do not change trades or the verdict rule. Only a YES ${esc(b.id || "")} adds this wallet.</p>
+    </div>`;
+  }
   function bestWorst(b) {
     const bits = [];
     if (b.best && b.best.symbol) bits.push("best " + b.best.symbol + " " + money(b.best.pnl, { sign: true }));
@@ -125,9 +169,12 @@
         <div><span class="k">Leader buys</span><span>${skip}</span></div>
       </div>
       <div class="tr-verdict ${vcls}">${esc(b.verdict || "")}</div>
+      ${warnLine(b)}
+      ${flagsBlock(b)}
       <div class="tr-more">
         <h3>Open</h3>${opens}
         <h3>Closed</h3>${closed}
+        <h3>Wallet checks</h3>${graderMore(b)}
       </div>
     </article>`;
   }
