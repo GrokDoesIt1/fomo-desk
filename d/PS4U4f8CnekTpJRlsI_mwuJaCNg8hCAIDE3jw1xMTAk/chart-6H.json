@@ -1,1 +1,1 @@
-{"range":"6H","points":[],"marks":[],"start":332.98,"mode":"PAPER","test":2,"base":350}
+{"range":"6H","points":[{"t":"2026-11-18T12:12:06.036371Z","v":331.46}],"marks":[{"t":"2026-11-18T12:11:21.576570Z","kind":"loss","text":"-$1.52","mint":"BSsmLA6UN8fzJ8qUkV4KwC5LxR7ab3TaUtcwvAyJpump","side":"sell","id":68,"label":"JALU","pnl":-1.52,"size":41.46,"exit":"timeout","coin_url":"https://fomo.family/coin?address=BSsmLA6UN8fzJ8qUkV4KwC5LxR7ab3TaUtcwvAyJpump&chainId=1399811149&source=share_link"}],"start":332.98,"mode":"PAPER","test":2,"base":350}
