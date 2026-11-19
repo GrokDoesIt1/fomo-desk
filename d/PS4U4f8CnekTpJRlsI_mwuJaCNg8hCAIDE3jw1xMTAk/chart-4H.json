@@ -1,1 +1,1 @@
-{"range":"4H","points":[],"marks":[],"start":333.51,"mode":"PAPER","test":2,"base":350}
+{"range":"4H","points":[{"t":"2026-11-19T12:49:07.311713Z","v":341.54}],"marks":[{"t":"2026-11-19T12:48:22.904421Z","kind":"gain","text":"+$8.50","mint":"VAYMVikuYQpWz5sXCeCsQDeho2QcGqDSNq9rhCspump","side":"sell","id":72,"label":"JESTER","pnl":8.5,"size":20.12,"exit":"take_profit","coin_url":"https://fomo.family/coin?address=VAYMVikuYQpWz5sXCeCsQDeho2QcGqDSNq9rhCspump&chainId=1399811149&source=share_link"}],"start":333.51,"mode":"PAPER","test":2,"base":350}
