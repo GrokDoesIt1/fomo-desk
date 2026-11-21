@@ -1,23 +1,23 @@
 PAPER strategy versions — Solana memecoins, FOMO desk Test 2, fees included. Please compare these forward results and suggest what to keep or change. Do not treat this as live trading.
 
-As of 2026-11-20 08:02 ET (America/Toronto). A–F started with $350. G Moonshot has no fixed bankroll — its start is money put into $5 bets so far. Need 50 closed trades before a version counts as proven.
+As of 2026-11-21 08:02 ET (America/Toronto). A–F started with $350. G Moonshot has no fixed bankroll — its start is money put into $5 bets so far. Need 50 closed trades before a version counts as proven.
 
-A  Main (Test 2)     Started with $350 → now $315.66 (−$34.34, −9.8%)  today +0.00  all-time 19 trades  8W/11L  WR 42%  PnL -70.50 (-20.1%)  open 2  profitable after fees: no  not enough trades (19/50)
+A  Main (Test 2)     Started with $350 → now $321.41 (−$28.59, −8.2%)  today +0.00  all-time 21 trades  10W/11L  WR 48%  PnL -28.59 (-8.2%)  open 0  profitable after fees: no  not enough trades (21/50)
     Unchanged baseline. Score 75, stop 10%, trail starts at +20% then sells on a 12% drop. Already takes half at +35%.
-B  Stop 12%          Started with $350 → now $359.20 (+$9.20, +2.6%)  today +0.00  all-time 10 trades  3W/7L  WR 30%  PnL -63.11 (-18.0%)  open 2  profitable after fees: no  not enough trades (10/50)
+B  Stop 12%          Started with $350 → now $339.15 (−$10.85, −3.1%)  today +0.00  all-time 12 trades  5W/7L  WR 42%  PnL -10.85 (-3.1%)  open 0  profitable after fees: no  not enough trades (12/50)
     Same entries as Main, but the stop is 12% instead of 10%.
-C  loose65           Started with $350 → now $221.49 (−$128.51, −36.7%)  today +0.00  all-time 47 trades  14W/33L  WR 30%  PnL -204.01 (-58.3%)  open 4  profitable after fees: no  not enough trades (47/50)
+C  loose65           Started with $350 → now $189.24 (−$160.76, −45.9%)  today -1.67  all-time 52 trades  16W/36L  WR 31%  PnL -160.76 (-45.9%)  open 0  profitable after fees: no  enough trades
     ROBTRO corrected Nov 14, was −$3,474. The old uncapped slippage model had booked a huge fake loss on a $12.64 ticket; it was recomputed with a 50% impact cap and a floor so a position cannot lose more than it put in.
     Score 65 and a soft liquidity-lock rule; same exits as Main. Keeps its existing history.
-D  Strict 85         Started with $350 → now $370.06 (+$20.06, +5.7%)  today +0.00  all-time 2 trades  0W/2L  WR 0%  PnL -52.25 (-14.9%)  open 2  profitable after fees: no  not enough trades (2/50)  ★ LEADER
+D  Strict 85         Started with $350 → now $350.02 (+$0.02, +0.0%)  today +0.00  all-time 4 trades  2W/2L  WR 50%  PnL +0.02 (+0.0%)  open 0  profitable after fees: yes  not enough trades (4/50)  ★ LEADER
     Same rules as Main, but only takes a coin when the score is 85 or higher.
-E  Ride winners      Started with $350 → now $338.81 (−$11.19, −3.2%)  today +0.00  all-time 10 trades  3W/7L  WR 30%  PnL -62.04 (-17.7%)  open 2  profitable after fees: no  not enough trades (10/50)
+E  Ride winners      Started with $350 → now $339.17 (−$10.83, −3.1%)  today +0.00  all-time 11 trades  4W/7L  WR 36%  PnL -45.48 (-13.0%)  open 1  profitable after fees: no  not enough trades (11/50)
     Same entries as Main. Sells half at +30%, then trails the rest 20% off the peak.
-F  Low-cost          Started with $350 → now $354.64 (+$4.64, +1.3%)  today +0.00  all-time 6 trades  0W/6L  WR 0%  PnL -67.67 (-19.3%)  open 2  profitable after fees: no  not enough trades (6/50)
+F  Low-cost          Started with $350 → now $334.60 (−$15.40, −4.4%)  today +0.00  all-time 8 trades  2W/6L  WR 25%  PnL -15.40 (-4.4%)  open 0  profitable after fees: no  not enough trades (8/50)
     Same rules as Main, but only buys when the pool has at least $40k liquidity.
-G  Moonshot          Started with $130 → now $64.79 (−$65.21, −50.2%)  today +0.00  all-time 25 trades  1W/24L  WR 4%  PnL -64.73 (-0.50x money risked on $130 risked, best multiple hit 4.06x)  open 1  profitable after fees: no  not enough trades (25/50)
+G  Moonshot          Started with $135 → now $68.13 (−$66.87, −49.5%)  today +0.00  all-time 26 trades  1W/25L  WR 4%  PnL -67.41 (-0.50x money risked on $135 risked, best multiple hit 4.06x)  open 1  profitable after fees: no  not enough trades (26/50)
     No fixed bankroll. Start is money put into $5 bets so far.
     $5 bets on early ($15k–$150k MC) coins with several real whales and a clear narrative. Stop -35%, take 1/3 at 3x, then trail 40% off peak after 2x. Does not use Main's 75 score.
 
-Leader: D Strict 85 at -52.25 (not yet 50 trades — treat as early).
+Leader: D Strict 85 at +0.02 (not yet 50 trades — treat as early).
 Main is the only version that sends Telegram BUY/SELL calls. All of this is paper.
